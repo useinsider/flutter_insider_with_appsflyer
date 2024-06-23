@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="com.useinsider.insider.flutter_insider">
+  <meta-data
+      android:name="flutterEmbedding"
+      android:value="2" />
+</manifest>

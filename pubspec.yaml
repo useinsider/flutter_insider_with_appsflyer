@@ -1,0 +1,25 @@
+name: flutter_insider
+description: Flutter Plugin For Insider SDK. For more information, please visit our website.
+version: 3.10.9+nh
+homepage: https://www.useinsider.com
+
+environment:
+  sdk: '>=2.12.0 <3.0.0'
+  flutter: '>=1.12.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.useinsider.insider.flutter_insider
+        pluginClass: FlutterInsiderPlugin
+      ios:
+        pluginClass: FlutterInsiderPlugin
