@@ -8,7 +8,7 @@ To integrate, add the following code to your `pubspec.yaml` file.
 
 ```
 dependencies:
-  flutter_insider_with_appsflyer:
+  flutter_insider:
     git:
       url: https://github.com/useinsider/flutter_insider_with_appsflyer
       ref: main

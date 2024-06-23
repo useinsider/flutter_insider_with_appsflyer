@@ -50,6 +50,8 @@ import android.os.Bundle;
 
 import java.util.Iterator;
 
+import android.util.Log;
+
 public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.StreamHandler, 
     FlutterPlugin, ActivityAware {
 
@@ -628,6 +630,8 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     activity.setIntent(intent);
 
                     AppsFlyerLib.getInstance().sendPushNotificationData(activity);
+
+                    Log.d("[INSIDER][AppsFlyer]", "Push payload has been sent: " + bundle.toString());
                 }
             }
         } catch (Exception e) {
