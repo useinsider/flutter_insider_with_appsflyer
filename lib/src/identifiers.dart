@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'constants.dart';
 
 class FlutterInsiderIdentifiers {
@@ -8,7 +7,7 @@ class FlutterInsiderIdentifiers {
     identifiers = new Map<String, String>();
   }
 
-  Future<FlutterInsiderIdentifiers> addEmail(String email) async {
+  FlutterInsiderIdentifiers addEmail(String email) {
     if (email == null) return this;
 
     identifiers!.addAll({Constants.ADD_EMAIL: email});
@@ -16,7 +15,7 @@ class FlutterInsiderIdentifiers {
     return this;
   }
 
-  Future<FlutterInsiderIdentifiers> addPhoneNumber(String phoneNumber) async {
+  FlutterInsiderIdentifiers addPhoneNumber(String phoneNumber) {
     if (phoneNumber == null) return this;
 
     identifiers!.addAll({Constants.ADD_PHONE_NUMBER: phoneNumber});
@@ -24,7 +23,7 @@ class FlutterInsiderIdentifiers {
     return this;
   }
 
-  Future<FlutterInsiderIdentifiers> addUserID(String userID) async {
+  FlutterInsiderIdentifiers addUserID(String userID) {
     if (userID == null) return this;
 
     identifiers!.addAll({Constants.ADD_USER_ID: userID});
@@ -32,7 +31,7 @@ class FlutterInsiderIdentifiers {
     return this;
   }
 
-  Future<FlutterInsiderIdentifiers> addCustomIdentifier(String key, String value) async {
+  FlutterInsiderIdentifiers addCustomIdentifier(String key, String value) {
     if (key == null || value == null) return this;
 
     identifiers!.addAll({key: value});
@@ -40,7 +39,7 @@ class FlutterInsiderIdentifiers {
     return this;
   }
 
-  Future<Map?> getIdentifiers() async {
+  Map? getIdentifiers() {
     return identifiers;
   }
 }

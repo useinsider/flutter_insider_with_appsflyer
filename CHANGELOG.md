@@ -273,3 +273,21 @@
 ## 3.10.9+nh
 
 * iOS Geofence SDK updated.
+
+## 3.11.0
+
+* iOS & Android SDK updated.
+* Removed setCustomKeyValuePairForPushIntent method.
+
+## 3.11.0+nh
+
+* iOS & Android SDK updated.
+* Removed setCustomKeyValuePairForPushIntent method.
+
+## 3.12.0
+
+* iOS & Android SDK updated.
+
+## 3.12.0+nh
+
+* iOS & Android SDK updated.

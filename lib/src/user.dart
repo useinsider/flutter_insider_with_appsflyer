@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_insider/src/identifiers.dart';
 import 'utils.dart';
@@ -11,7 +10,7 @@ class FlutterInsiderUser {
     this._channel = methodChannel;
   }
 
-  Future<FlutterInsiderUser> setGender(int gender) async {
+  FlutterInsiderUser setGender(int gender) {
     try {
       if (gender == null) return this;
 
@@ -25,7 +24,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setBirthday(DateTime birthday) async {
+  FlutterInsiderUser setBirthday(DateTime birthday) {
     try {
       if (birthday == null) return this;
 
@@ -39,7 +38,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setName(String name) async {
+  FlutterInsiderUser setName(String name)  {
     try {
       if (name == null) return this;
 
@@ -53,7 +52,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setSurname(String surname) async {
+  FlutterInsiderUser setSurname(String surname) {
     try {
       if (surname == null) return this;
 
@@ -67,7 +66,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setLanguage(String language) async {
+  FlutterInsiderUser setLanguage(String language) {
     try {
       if (language == null) return this;
       _setUserAttribute(Constants.SET_LANGUAGE, language);
@@ -78,7 +77,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setLocale(String locale) async {
+  FlutterInsiderUser setLocale(String locale) {
     try {
       if (locale == null) return this;
 
@@ -92,7 +91,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setFacebookID(String facebookID) async {
+  FlutterInsiderUser setFacebookID(String facebookID) {
     try {
       if (facebookID == null) return this;
 
@@ -106,7 +105,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setTwitterID(String twitterID) async {
+  FlutterInsiderUser setTwitterID(String twitterID) {
     try {
       if (twitterID == null) return this;
 
@@ -120,7 +119,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setAge(int age) async {
+  FlutterInsiderUser setAge(int age) {
     try {
       if (age == null) return this;
 
@@ -134,7 +133,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setSMSOptin(bool smsOptin) async {
+  FlutterInsiderUser setSMSOptin(bool smsOptin) {
     try {
       if (smsOptin == null) return this;
 
@@ -148,7 +147,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setEmailOptin(bool emailOptin) async {
+  FlutterInsiderUser setEmailOptin(bool emailOptin) {
     try {
       if (emailOptin == null) return this;
       
@@ -161,7 +160,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setLocationOptin(bool locationOptin) async {
+  FlutterInsiderUser setLocationOptin(bool locationOptin) {
     try {
       if (locationOptin == null) return this;
 
@@ -175,7 +174,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setPushOptin(bool pushOptin) async {
+  FlutterInsiderUser setPushOptin(bool pushOptin) {
     try {
       if (pushOptin == null) return this;
 
@@ -189,7 +188,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setWhatsappOptin(bool whatsappOptin) async {
+  FlutterInsiderUser setWhatsappOptin(bool whatsappOptin) {
     try {
       if (whatsappOptin == null) return this;
 
@@ -203,7 +202,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setEmail(String email) async {
+  FlutterInsiderUser setEmail(String email) {
     try {
       if (email == null) return this;
 
@@ -217,7 +216,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setPhoneNumber(String phoneNumber) async {
+  FlutterInsiderUser setPhoneNumber(String phoneNumber) {
     try {
       if (phoneNumber == null) return this;
 
@@ -231,13 +230,13 @@ class FlutterInsiderUser {
     return this;
   }
 
-  _setUserAttribute(String key, dynamic value) async {
+  _setUserAttribute(String key, dynamic value) {
     try {
       if (key == null || value == null) return;
 
       Map<String, dynamic>? args = _createMapForMethodCall(key, value);
 
-      await _channel.invokeMethod(key, args);
+      _channel.invokeMethod(key, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -260,13 +259,13 @@ class FlutterInsiderUser {
     return null;
   }
 
-  Future<FlutterInsiderUser> setCustomAttributeWithString(String key, String value) async {
+  FlutterInsiderUser setCustomAttributeWithString(String key, String value) {
     try {
       if (key == null || value == null) return this;
 
       Map<String, dynamic>? args = _createMapForMethodCall(key, value);
 
-      await _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_STRING, args);
+      _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_STRING, args);
 
       return this;
     } catch (Exception) {
@@ -276,13 +275,13 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setCustomAttributeWithInt(String key, int value) async {
+  FlutterInsiderUser setCustomAttributeWithInt(String key, int value) {
     try {
       if (key == null || value == null) return this;
 
       Map<String, dynamic>? args = _createMapForMethodCall(key, value);
 
-      await _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_INT, args);
+      _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_INT, args);
 
       return this;
     } catch (Exception) {
@@ -292,13 +291,13 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setCustomAttributeWithDouble(String key, double value) async {
+  FlutterInsiderUser setCustomAttributeWithDouble(String key, double value) {
     try {
       if (key == null || value == null) return this;
 
       Map<String, dynamic>? args = _createMapForMethodCall(key, value);
 
-      await _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_DOUBLE, args);
+      _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_DOUBLE, args);
 
       return this;
     } catch (Exception) {
@@ -308,13 +307,13 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setCustomAttributeWithBoolean(String key, bool value) async {
+  FlutterInsiderUser setCustomAttributeWithBoolean(String key, bool value) {
     try {
       if (key == null || value == null) return this;
 
       Map<String, dynamic>? args = _createMapForMethodCall(key, value);
 
-      await _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_BOOLEAN, args);
+      _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_BOOLEAN, args);
 
       return this;
     } catch (Exception) {
@@ -324,13 +323,13 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setCustomAttributeWithDate(String key, DateTime value) async {
+  FlutterInsiderUser setCustomAttributeWithDate(String key, DateTime value) {
     try {
       if (key == null || value == null) return this;
 
       Map<String, dynamic>? args = _createMapForMethodCall(key, FlutterInsiderUtils.getDateForParsing(value));
 
-      await _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_DATE, args);
+      _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_DATE, args);
 
       return this;
     } catch (Exception) {
@@ -339,13 +338,13 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> setCustomAttributeWithArray(String key, List<String> value) async {
+  FlutterInsiderUser setCustomAttributeWithArray(String key, List<String> value) {
     try {
       if (key == null || value == null) return this;
 
       Map<String, dynamic>? args = _createMapForMethodCall(key, value);
 
-      await _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_ARRAY, args);
+      _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_ARRAY, args);
 
       return this;
     } catch (Exception) {
@@ -355,7 +354,7 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future<FlutterInsiderUser> unsetCustomAttribute(String key) async {
+  FlutterInsiderUser unsetCustomAttribute(String key) {
     try {
       if (key == null) return this;
 
@@ -363,7 +362,7 @@ class FlutterInsiderUser {
       
       args["key"] = key;
 
-      await _channel.invokeMethod(Constants.UNSET_CUSTOM_ATTRIBUTE, args);
+      _channel.invokeMethod(Constants.UNSET_CUSTOM_ATTRIBUTE, args);
 
       return this;
     } catch (Exception) {
@@ -373,43 +372,37 @@ class FlutterInsiderUser {
     return this;
   }
 
-  Future login(FlutterInsiderIdentifiers identifiers, {Function? insiderIDResult}) async {
+  void login(FlutterInsiderIdentifiers identifiers, {Function? insiderIDResult}) {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
 
-      args["identifiers"] = await identifiers.getIdentifiers();
+      args["identifiers"] = identifiers.getIdentifiers();
 
       if (insiderIDResult != null) {
         args["insiderID"] = "insiderID";
 
-        String? insiderID = await _channel.invokeMethod(Constants.LOGIN, args);
+        _channel.invokeMethod(Constants.LOGIN, args).then((insiderID) {
+          insiderIDResult(insiderID);
+        }).catchError((error) {
+          FlutterInsiderUtils.putException(_channel, error);
+        });
 
-        insiderIDResult(insiderID);
-
-        return this;
+        return;
       }
 
-      await _channel.invokeMethod(Constants.LOGIN, args);
-
-      return this;
+      _channel.invokeMethod(Constants.LOGIN, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
-
-    return this;
   }
 
-  Future logout() async {
+  void logout() {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
 
-      await _channel.invokeMethod(Constants.LOGOUT, args);
-
-      return this;
+      _channel.invokeMethod(Constants.LOGOUT, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
-    
-    return this;
   }
 }

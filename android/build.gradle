@@ -1,5 +1,5 @@
 group 'com.useinsider.insider.flutter_insider'
-version '3.10.9+nh-SNAPSHOT'
+version '3.12.0+nh-SNAPSHOT'
 
 buildscript {
     repositories {
@@ -8,7 +8,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.3.0'
+        classpath 'com.android.tools.build:gradle:8.4.2'
     }
 }
 
@@ -23,10 +23,10 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 34
 
     defaultConfig {
-        minSdkVersion 18
+        minSdkVersion 21
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     lintOptions {
@@ -37,13 +37,14 @@ android {
 dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
-    implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0'
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
 
-    implementation 'com.google.android.gms:play-services-location:21.0.1'
-    implementation 'com.google.firebase:firebase-messaging:23.0.5'
+    implementation 'com.google.firebase:firebase-messaging:24.0.0'
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
     implementation 'com.google.android.play:review:2.0.1'
 
-    implementation 'com.appsflyer:af-android-sdk:6.14.0'
-    implementation 'com.useinsider:insider:14.2.5-nh'
+    implementation 'com.useinsider:insider:14.4.0-nh'
     implementation 'com.useinsider:insiderhybrid:1.1.5'
+
+    implementation 'com.appsflyer:af-android-sdk:6.14.0'
 }
