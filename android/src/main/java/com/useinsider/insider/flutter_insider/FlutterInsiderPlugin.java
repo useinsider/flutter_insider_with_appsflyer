@@ -605,6 +605,12 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                         return;
                     Insider.Instance.setPushToken(call.argument("pushToken").toString());
                     break;
+                case "disableInAppMessages":
+                    Insider.Instance.disableInAppMessages();
+                    break;
+                case "enableInAppMessages":
+                    Insider.Instance.enableInAppMessages();
+                    break;
                 default:
                     result.notImplemented();
             }

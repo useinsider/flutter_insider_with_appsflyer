@@ -152,7 +152,11 @@ FlutterEventSink mEventSink;
     } else if ([call.method isEqualToString:@"registerInsiderIDListener"]) {
         [self registerInsiderIDListener:call];
     } else if ([call.method isEqualToString:@"setPushToken"]) {
-    } else {
+    } else if ([call.method isEqualToString:@"disableInAppMessages"]) {
+        [self disableInAppMessages:call];
+    }  else if ([call.method isEqualToString:@"enableInAppMessages"]) {
+        [self enableInAppMessages:call];
+    }  else {
         result(FlutterMethodNotImplemented);
     }
 }
@@ -761,6 +765,22 @@ FlutterEventSink mEventSink;
 -(void)getInsiderID:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         result([Insider getInsiderID]);
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+-(void)disableInAppMessages:(FlutterMethodCall *)call {
+    @try {
+        [Insider disableInAppMessages];
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+-(void)enableInAppMessages:(FlutterMethodCall *)call {
+    @try {
+        [Insider enableInAppMessages];
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }

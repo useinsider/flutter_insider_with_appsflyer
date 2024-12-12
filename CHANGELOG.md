@@ -291,3 +291,29 @@
 ## 3.12.0+nh
 
 * iOS & Android SDK updated.
+
+## 3.12.1
+
+* iOS SDK updated.
+
+## 3.12.1+nh
+
+* iOS SDK updated.
+
+## 3.13.0
+
+* Android & iOS SDK updated.
+* Added new methods for App Templates (enableInAppMessages & disableInAppMessages)
+
+## 3.13.0+nh
+
+* Android & iOS SDK updated.
+* Added new methods for App Templates (enableInAppMessages & disableInAppMessages)
+
+## 3.13.1
+
+* iOS SDK updated.
+
+## 3.13.1+nh
+
+* iOS SDK updated.
