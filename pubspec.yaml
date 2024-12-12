@@ -1,6 +1,6 @@
 name: flutter_insider
 description: Flutter Plugin For Insider SDK. For more information, please visit our website.
-version: 3.12.0+nh
+version: 3.13.1+nh
 homepage: https://www.useinsider.com
 
 environment:

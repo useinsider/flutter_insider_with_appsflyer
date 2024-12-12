@@ -42,6 +42,8 @@ class Constants {
   static const String GET_INSIDER_ID = 'getInsiderID';
   static const String REGISTER_INSIDER_ID_LISTENER = 'registerInsiderIDListener';
   static const String SET_PUSH_TOKEN = 'setPushToken';
+  static const String DISABLE_IN_APP_MESSAGES = 'disableInAppMessages';
+  static const String ENABLE_IN_APP_MESSAGES = 'enableInAppMessages';
 
   static const String ENABLE_CARRIER_COLLECTION = 'enableCarrierCollection';
   static const String ENABLE_IP_COLLECTION = 'enableIpCollection';

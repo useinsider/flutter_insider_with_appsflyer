@@ -21,7 +21,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-3.12.0+nh";
+    args["sdkVersion"] = "F-3.13.1+nh";
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;
@@ -535,6 +535,22 @@ class FlutterInsider {
       args['pushToken'] = pushToken;
 
       await _channel.invokeMethod(Constants.SET_PUSH_TOKEN, args);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
+  void disableInAppMessages() {
+    try {
+      _channel.invokeMethod(Constants.DISABLE_IN_APP_MESSAGES);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
+  void enableInAppMessages() {
+    try {
+      _channel.invokeMethod(Constants.ENABLE_IN_APP_MESSAGES);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
