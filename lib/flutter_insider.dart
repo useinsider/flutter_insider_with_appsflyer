@@ -21,7 +21,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-3.13.1+nh";
+    args["sdkVersion"] = "F-3.14.0+nh";
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;
@@ -290,6 +290,30 @@ class FlutterInsider {
     }
   }
 
+  Future<void> visitWishlistPage(List<FlutterInsiderProduct> products) async {
+    try {
+      if (products == null) return;
+
+      var list = List<Map>.filled(0, <String, dynamic>{}, growable: true);
+      Map<String, dynamic> args = <String, dynamic>{};
+
+      for (var product in products) {
+        Map<String, dynamic> map = <String, dynamic>{};
+
+        map[Constants.PRODUCT_MUST_MAP] = product.productMustMap;
+        map[Constants.PRODUCT_OPT_MAP] = product.productOptMap;
+
+        list.add(map);
+      }
+
+      args[Constants.PRODUCTS] = list;
+
+      await _channel.invokeMethod(Constants.VISIT_WISHLIST_PAGE, args);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
   FlutterInsiderUser? getCurrentUser() {
     return _insiderUser;
   }
@@ -347,6 +371,43 @@ class FlutterInsider {
   Future<void> cartCleared() async {
     try {
       await _channel.invokeMethod(Constants.CART_CLEARED);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
+  Future<void> itemAddedToWishlist(FlutterInsiderProduct product) async {
+    try {
+      if (product == null) return;
+
+      Map<String, dynamic> args = <String, dynamic>{};
+
+      args['productMustMap'] = product.productMustMap;
+      args['productOptMap'] = product.productOptMap;
+
+      await _channel.invokeMethod(Constants.ITEM_ADDED_TO_WISH_LIST, args);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
+  Future<void> itemRemovedFromWishlist(String productID) async {
+    try {
+      if (productID == null) return;
+
+      Map<String, dynamic> args = <String, dynamic>{};
+
+      args['productID'] = productID;
+
+      await _channel.invokeMethod(Constants.ITEM_REMOVED_FROM_WISH_LIST, args);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
+  Future<void> wishlistCleared() async {
+    try {
+      await _channel.invokeMethod(Constants.WISH_LIST_CLEARED);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }

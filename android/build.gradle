@@ -1,5 +1,5 @@
 group 'com.useinsider.insider.flutter_insider'
-version '3.13.1+nh-SNAPSHOT'
+version '3.14.0+nh-SNAPSHOT'
 
 buildscript {
     repositories {
@@ -44,7 +44,5 @@ dependencies {
     implementation 'com.google.android.play:review:2.0.1'
 
     implementation 'com.useinsider:insider:14.5.0-nh'
-    implementation 'com.useinsider:insiderhybrid:1.1.5'
-
-    implementation 'com.appsflyer:af-android-sdk:6.14.0'
+    implementation 'com.useinsider:insiderhybrid:1.2.0'
 }

@@ -216,7 +216,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                         return;
                     Insider.Instance.setGDPRConsent((boolean) call.argument("consent"));
                     break;
-                case InsiderHybridMethods.ENABLE_IDFA_COLLECTION:
+                case "enableIDFACollection":
                     if (!call.hasArgument("enableIDFACollection"))
                         return;
                     // Depracated only Android
@@ -610,6 +610,36 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     break;
                 case "enableInAppMessages":
                     Insider.Instance.enableInAppMessages();
+                    break;
+                case "visitWishlistPage":
+                    if (!call.hasArgument(InsiderHybridMethods.PRODUCTS))
+                        return;
+
+                    Insider.Instance.visitWishlistPage(
+                            InsiderHybrid.convertArrayToInsiderProductArray(
+                                    (ArrayList<Map<String, Object>>) call.argument(InsiderHybridMethods.PRODUCTS)
+                            )
+                    );
+                    break;
+                case "itemAddedToWishlist":
+                    if (!call.hasArgument(InsiderHybridMethods.PRODUCT_MUST_MAP)
+                            || !call.hasArgument(InsiderHybridMethods.PRODUCT_OPT_MAP))
+                        return;
+
+                    Insider.Instance.itemAddedToWishlist(
+                            InsiderHybrid.createProduct(
+                                    (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_MUST_MAP),
+                                    (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_OPT_MAP))
+                    );
+                    break;
+                case "itemRemovedFromWishlist":
+                    if (!call.hasArgument("productID"))
+                        return;
+
+                    Insider.Instance.itemRemovedFromWishlist(call.argument("productID").toString());
+                    break;
+                case "wishlistCleared":
+                    Insider.Instance.wishlistCleared();
                     break;
                 default:
                     result.notImplemented();

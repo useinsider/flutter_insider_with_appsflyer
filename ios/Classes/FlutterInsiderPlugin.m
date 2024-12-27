@@ -154,9 +154,17 @@ FlutterEventSink mEventSink;
     } else if ([call.method isEqualToString:@"setPushToken"]) {
     } else if ([call.method isEqualToString:@"disableInAppMessages"]) {
         [self disableInAppMessages:call];
-    }  else if ([call.method isEqualToString:@"enableInAppMessages"]) {
+    } else if ([call.method isEqualToString:@"enableInAppMessages"]) {
         [self enableInAppMessages:call];
-    }  else {
+    } else if ([call.method isEqualToString:@"visitWishlistPage"]) {
+        [self visitWishlistPage:call];
+    } else if ([call.method isEqualToString:@"itemAddedToWishlist"]) {
+        [self itemAddedToWishlist:call];
+    } else if ([call.method isEqualToString:@"itemRemovedFromWishlist"]) {
+        [self itemRemovedFromWishlist:call];
+    } else if ([call.method isEqualToString:@"wishlistCleared"]) {
+        [self wishlistCleared:call];
+    } else {
         result(FlutterMethodNotImplemented);
     }
 }
@@ -381,6 +389,45 @@ FlutterEventSink mEventSink;
 - (void)cartCleared:(FlutterMethodCall *)call {
     @try {
         [Insider cartCleared];
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+- (void)visitWishlistPage:(FlutterMethodCall *)call {
+    @try {
+        if (!call.arguments[@"products"]) return;
+
+        [Insider visitWishlistWithProducts:[InsiderHybrid convertArrayToInsiderProductArray:call.arguments[@"products"]]];
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+- (void)itemAddedToWishlist:(FlutterMethodCall *)call {
+    @try {
+        if (!call.arguments[PRODUCT_MUST_MAP] || !call.arguments[PRODUCT_OPT_MAP]) return;
+        InsiderProduct *product = (InsiderProduct *)[InsiderHybrid createProduct:call.arguments[PRODUCT_MUST_MAP] productOptMap:call.arguments[PRODUCT_OPT_MAP]];
+
+        [Insider itemAddedToWishlistWithProduct:product];
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+- (void)itemRemovedFromWishlist:(FlutterMethodCall *)call {
+    @try {
+        if (!call.arguments[@"productID"]) return;
+
+        [Insider itemRemovedFromWishlistWithProductID:call.arguments[@"productID"]];
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+- (void)wishlistCleared:(FlutterMethodCall *)call {
+    @try {
+        [Insider wishlistCleared];
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }

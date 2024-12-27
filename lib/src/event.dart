@@ -72,7 +72,7 @@ class FlutterInsiderEvent {
     try {
       if (key == null || value == null) return this;
 
-      this._parameters[key] = value.toString();
+      this._parameters[key] = FlutterInsiderUtils.getDateForParsing(value);
 
       return this;
     } catch (Exception) {

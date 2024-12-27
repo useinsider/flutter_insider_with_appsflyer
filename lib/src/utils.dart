@@ -26,6 +26,9 @@ class FlutterInsiderUtils {
   }
 
   static String getDateForParsing(DateTime date) {
-    return date.toUtc().add(date.timeZoneOffset).toIso8601String();
+    int milliseconds = date.millisecondsSinceEpoch;
+    DateTime dateWithMilliseconds = DateTime.fromMillisecondsSinceEpoch(milliseconds);
+
+    return dateWithMilliseconds.toUtc().add(date.timeZoneOffset).toIso8601String();
   }
 }

@@ -317,3 +317,12 @@
 ## 3.13.1+nh
 
 * iOS SDK updated.
+
+
+## 3.14.0
+
+* Android & iOS SDK updated.
+* 
+## 3.14.0+nh
+
+* Android & iOS SDK updated.

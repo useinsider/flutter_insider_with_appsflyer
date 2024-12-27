@@ -14,10 +14,14 @@ class Constants {
   static const String VISIT_LISTING_PAGE = "visitListingPage";
   static const String VISIT_PRODUCT_DETAIL_PAGE = "visitProductDetailPage";
   static const String VISIT_CART_PAGE = "visitCartPage";
+  static const String VISIT_WISHLIST_PAGE = "visitWishlistPage";
   static const String ITEM_PURCHASED = "itemPurchased";
   static const String ITEM_ADDED_TO_CART = "itemAddedToCart";
   static const String ITEM_REMOVED_FROM_CART = "itemRemovedFromCart";
   static const String CART_CLEARED = "cartCleared";
+  static const String ITEM_ADDED_TO_WISH_LIST = "itemAddedToWishlist";
+  static const String ITEM_REMOVED_FROM_WISH_LIST  = "itemRemovedFromWishlist";
+  static const String WISH_LIST_CLEARED = "wishlistCleared";
   static const String SET_CUSTOM_ENDPOINT = "setCustomEndpoint";
   static const String GET_SMART_RECOMMENDATION = "getSmartRecommendation";
   static const String GET_SMART_RECOMMENDATION_WITH_PRODUCT = "getSmartRecommendationWithProduct";
