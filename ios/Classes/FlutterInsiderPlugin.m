@@ -164,6 +164,8 @@ FlutterEventSink mEventSink;
         [self itemRemovedFromWishlist:call];
     } else if ([call.method isEqualToString:@"wishlistCleared"]) {
         [self wishlistCleared:call];
+    } else if ([call.method isEqualToString:@"handleUniversalLink"]) {
+        [self handleUniversalLink:call];
     } else {
         result(FlutterMethodNotImplemented);
     }
@@ -852,6 +854,19 @@ FlutterEventSink mEventSink;
 -(void)insiderIDChangeListener:(NSString *) insiderID {
     @try {
         [InsiderIDStreamHandler triggerEvent:insiderID];
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+-(void)handleUniversalLink:(FlutterMethodCall *)call {
+    @try {
+        if (!call.arguments[@"universalLink"]) return;
+
+        NSUserActivity *activity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
+        activity.webpageURL = [NSURL URLWithString:call.arguments[@"universalLink"]];
+
+        [Insider handleUniversalLink:activity];
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }

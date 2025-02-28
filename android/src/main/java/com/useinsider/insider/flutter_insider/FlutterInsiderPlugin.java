@@ -641,6 +641,15 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                 case "wishlistCleared":
                     Insider.Instance.wishlistCleared();
                     break;
+                case "handleUniversalLink":
+                    if (!call.hasArgument("universalLink"))
+                        return;
+
+                    Intent intent = new Intent();
+                    intent.setData(Uri.parse(call.argument("universalLink")));
+
+                    Insider.Instance.handleUniversalLink(intent);
+                    break;
                 default:
                     result.notImplemented();
             }

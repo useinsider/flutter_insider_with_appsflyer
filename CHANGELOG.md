@@ -322,7 +322,23 @@
 ## 3.14.0
 
 * Android & iOS SDK updated.
-* 
+
 ## 3.14.0+nh
+
+* Android & iOS SDK updated.
+
+## 3.15.0
+
+* Added new method (handleUniversalLink) for universal link handling.
+
+## 3.15.0+nh
+
+* Added new method (handleUniversalLink) for universal link handling.
+
+## 3.15.1
+
+* Android & iOS SDK updated.
+
+## 3.15.1+nh
 
 * Android & iOS SDK updated.

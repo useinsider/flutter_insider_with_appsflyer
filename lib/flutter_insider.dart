@@ -21,7 +21,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-3.14.0+nh";
+    args["sdkVersion"] = "F-3.15.1+nh";
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;
@@ -612,6 +612,18 @@ class FlutterInsider {
   void enableInAppMessages() {
     try {
       _channel.invokeMethod(Constants.ENABLE_IN_APP_MESSAGES);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
+  void handleUniversalLink(String url) {
+    try {
+      Map<String, dynamic> args = <String, dynamic>{};
+
+      args['universalLink'] = url;
+
+      _channel.invokeMethod(Constants.HANDLE_UNIVERSAL_LINK, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
