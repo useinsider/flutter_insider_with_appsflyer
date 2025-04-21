@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.net.Uri;
 
 import androidx.annotation.NonNull;
 
@@ -649,6 +650,40 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     intent.setData(Uri.parse(call.argument("universalLink")));
 
                     Insider.Instance.handleUniversalLink(intent);
+                    break;
+                case "setMobileAppAccess":
+                    if (!call.hasArgument("mobileAppAccess"))
+                        return;
+                    Insider.Instance.setMobileAppAccess((boolean) call.argument("mobileAppAccess"));
+                    break;
+                case "getContentStringWithoutCache":
+                    if (!isContentOptimizerCallValid(call)) {
+                        result.error(Constants.ERROR, null, null);
+                        return;
+                    }
+                    result.success(
+                            InsiderHybrid.getContentStringWithoutCache(call.argument(Constants.VARIABLE_NAME).toString(),
+                                    call.argument(Constants.DEFAULT_VALUE).toString(),
+                                    (int) call.argument(Constants.DATA_TYPE)));
+                    break;
+                case "getContentIntWithoutCache":
+                    if (!isContentOptimizerCallValid(call)) {
+                        result.error(Constants.ERROR, null, null);
+                        return;
+                    }
+                    result.success(InsiderHybrid.getContentIntWithoutCache(
+                            call.argument(Constants.VARIABLE_NAME).toString(),
+                            (int) call.argument(Constants.DEFAULT_VALUE), (int) call.argument(Constants.DATA_TYPE)));
+                    break;
+                case "getContentBoolWithoutCache":
+                    if (!isContentOptimizerCallValid(call)) {
+                        result.error(Constants.ERROR, null, null);
+                        return;
+                    }
+                    result.success(
+                            InsiderHybrid.getContentBoolWithoutCache(call.argument(Constants.VARIABLE_NAME).toString(),
+                                    (boolean) call.argument(Constants.DEFAULT_VALUE),
+                                    (int) call.argument(Constants.DATA_TYPE)));
                     break;
                 default:
                     result.notImplemented();

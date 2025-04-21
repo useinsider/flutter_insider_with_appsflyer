@@ -6,9 +6,13 @@ class Constants {
   static const String START_TRACKING_GEOFENCE = "startTrackingGeofence";
   static const String HANDLE_NOTIFICATION = "handleNotification";
   static const String SET_GDPR_CONSENT = "setGDPRConsent";
+  static const String SET_MOBILE_APP_ACCESS = "setMobileAppAccess";
   static const String GET_CONTENT_STRING_WITH_NAME = "getContentStringWithName";
   static const String GET_CONTENT_INT_WITH_NAME = "getContentIntWithName";
   static const String GET_CONTENT_BOOL_WITH_NAME = "getContentBoolWithName";
+  static const String GET_CONTENT_STRING_WITHOUT_CACHE = "getContentStringWithoutCache";
+  static const String GET_CONTENT_INT_WITHOUT_CACHE = "getContentIntWithoutCache";
+  static const String GET_CONTENT_BOOL_WITHOUT_CACHE = "getContentBoolWithoutCache";
   static const String REMOVE_INAPP = "removeInapp";
   static const String VISIT_HOME_PAGE = "visitHomePage";
   static const String VISIT_LISTING_PAGE = "visitListingPage";

@@ -21,7 +21,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-3.15.1+nh";
+    args["sdkVersion"] = "F-3.17.0+nh";
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;
@@ -168,6 +168,20 @@ class FlutterInsider {
     }
   }
 
+  Future<void> setMobileAppAccess(bool mobileAppAccess) async {
+    try {
+      if (mobileAppAccess == null) return;
+
+      Map<String, dynamic> args = <String, dynamic>{};
+
+      args["mobileAppAccess"] = mobileAppAccess;
+
+      await _channel.invokeMethod(Constants.SET_MOBILE_APP_ACCESS, args);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
   Future<String?> getContentStringWithName(String variableName, String defaultValue, int dataType) async {
     try {
       if (variableName == null || defaultValue == null || dataType == null)
@@ -212,6 +226,59 @@ class FlutterInsider {
           variableName, defaultValue, dataType, _channel);
 
       final bool? returnValue = await _channel.invokeMethod(Constants.GET_CONTENT_BOOL_WITH_NAME, args);
+
+      return returnValue;
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+
+    return defaultValue;
+  }
+
+  Future<String?> getContentStringWithoutCache(String variableName, String defaultValue, int dataType) async {
+    try {
+      if (variableName == null || defaultValue == null || dataType == null)
+        return defaultValue;
+
+      Map<String, dynamic>? args = FlutterInsiderUtils.getContentOptimizerMap(
+          variableName, defaultValue, dataType, _channel);
+
+      final String? returnValue = await _channel.invokeMethod(Constants.GET_CONTENT_STRING_WITHOUT_CACHE, args);
+      return returnValue;
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+
+    return defaultValue;
+  }
+
+  Future<int?> getContentIntWithoutCache(String variableName, int defaultValue, int dataType) async {
+    try {
+      if (variableName == null || defaultValue == null || dataType == null)
+        return defaultValue;
+
+      Map<String, dynamic>? args = FlutterInsiderUtils.getContentOptimizerMap(
+          variableName, defaultValue, dataType, _channel);
+
+      final int? returnValue = await _channel.invokeMethod(Constants.GET_CONTENT_INT_WITHOUT_CACHE, args);
+
+      return returnValue;
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+
+    return defaultValue;
+  }
+
+  Future<bool?> getContentBoolWithoutCache(String variableName, bool defaultValue, int dataType) async {
+    try {
+      if (variableName == null || defaultValue == null || dataType == null)
+        return defaultValue;
+
+      Map<String, dynamic>? args = FlutterInsiderUtils.getContentOptimizerMap(
+          variableName, defaultValue, dataType, _channel);
+
+      final bool? returnValue = await _channel.invokeMethod(Constants.GET_CONTENT_BOOL_WITHOUT_CACHE, args);
 
       return returnValue;
     } catch (Exception) {

@@ -42,7 +42,9 @@ FlutterEventSink mEventSink;
         [self handleNotification:call];
     } else if ([call.method isEqualToString:SET_GDPR_CONSENT]) {
         [self setGDPRConsent:call];
-    }  else if ([call.method isEqualToString:ENABLE_IDFA_COLLECTION]) {
+    } else if ([call.method isEqualToString:@"setMobileAppAccess"]) {
+        [self setMobileAppAccess:call];
+    } else if ([call.method isEqualToString:ENABLE_IDFA_COLLECTION]) {
         [self enableIDFACollection:call];
     } else if ([call.method isEqualToString:@"enableCarrierCollection"]) {
         [self enableCarrierCollection:call];
@@ -56,6 +58,12 @@ FlutterEventSink mEventSink;
         [self getContentIntWithName:call withResult:result];
     } else if ([call.method isEqualToString:GET_CONTENT_BOOL_WITH_NAME]) {
         [self getContentBoolWithName:call withResult:result];
+    } else if ([call.method isEqualToString:@"getContentStringWithoutCache"]) {
+        [self getContentStringWithoutCache:call withResult:result];
+    } else if ([call.method isEqualToString:@"getContentIntWithoutCache"]) {
+        [self getContentIntWithoutCache:call withResult:result];
+    } else if ([call.method isEqualToString:@"getContentBoolWithoutCache"]) {
+        [self getContentBoolWithoutCache:call withResult:result];
     } else if ([call.method isEqualToString:REMOVE_INAPP]) {
         [self removeInapp:call];
     } else if ([call.method isEqualToString:VISIT_HOME_PAGE]) {
@@ -285,6 +293,15 @@ FlutterEventSink mEventSink;
     }
 }
 
+- (void)setMobileAppAccess:(FlutterMethodCall *)call {
+    @try {
+        if (!call.arguments[@"mobileAppAccess"]) return;
+        [Insider setMobileAppAccess:[call.arguments[@"mobileAppAccess"] boolValue]];
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
 - (void)getContentStringWithName:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         if (!call.arguments[@"variableName"] || !call.arguments[@"defaultValue"] || !call.arguments[@"dataType"]) return;
@@ -310,6 +327,36 @@ FlutterEventSink mEventSink;
         if (!call.arguments[@"variableName"] || !call.arguments[@"defaultValue"] || !call.arguments[@"dataType"]) return;
         bool coResult = [Insider getContentBoolWithName:call.arguments[@"variableName"] defaultBool:[call.arguments[@"defaultValue"] boolValue] dataType:[call.arguments[@"dataType"] intValue]];
         result([NSNumber numberWithBool:coResult]);
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+- (void)getContentStringWithoutCache:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        if (!call.arguments[@"variableName"] || !call.arguments[@"defaultValue"] || !call.arguments[@"dataType"]) return;
+        NSString *coResult = [Insider getContentStringWithoutCache:call.arguments[@"variableName"] defaultString:call.arguments[@"defaultValue"] dataType:[call.arguments[@"dataType"] intValue]];
+        result(coResult);
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+- (void)getContentBoolWithoutCache:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        if (!call.arguments[@"variableName"] || !call.arguments[@"defaultValue"] || !call.arguments[@"dataType"]) return;
+        bool coResult = [Insider getContentBoolWithoutCache:call.arguments[@"variableName"] defaultBool:[call.arguments[@"defaultValue"] boolValue] dataType:[call.arguments[@"dataType"] intValue]];
+        result([NSNumber numberWithBool:coResult]);
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+- (void)getContentIntWithoutCache:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        if (!call.arguments[@"variableName"] || !call.arguments[@"defaultValue"] || !call.arguments[@"dataType"]) return;
+        int coResult = [Insider getContentIntWithoutCache:call.arguments[@"variableName"] defaultInt:[call.arguments[@"defaultValue"] intValue] dataType:[call.arguments[@"dataType"] intValue]];
+        result([NSNumber numberWithInt:coResult]);
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }

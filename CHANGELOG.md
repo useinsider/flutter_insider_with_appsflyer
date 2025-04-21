@@ -342,3 +342,27 @@
 ## 3.15.1+nh
 
 * Android & iOS SDK updated.
+
+## 3.15.2
+
+* Resolved namespace attribute compatibility issue for Gradle 8 and later versions.
+
+## 3.15.2+nh
+
+* Resolved namespace attribute compatibility issue for Gradle 8 and later versions.
+
+## 3.16.0
+
+* Android & iOS SDK updated.
+
+## 3.16.0+nh
+
+* Android & iOS SDK updated.
+
+## 3.17.0
+
+* Android & iOS SDK updated.
+
+## 3.17.0+nh
+
+* Android & iOS SDK updated.
