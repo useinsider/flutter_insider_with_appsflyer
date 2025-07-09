@@ -92,18 +92,8 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
     private void initSDK(MethodCall call, Result result) {
         try {
             String partnerName = call.argument("partnerName").toString();
-            Insider.Instance.init((Application) context.getApplicationContext(), partnerName);
-            Insider.Instance.setSDKType("flutter");
-            Insider.Instance.setHybridSDKVersion(call.argument("sdkVersion").toString());
-            Insider.Instance.resumeSessionHybridConfig(activity);
 
-            if (isCoreInited) {
-                Insider.Instance.resumeSessionHybridRequestConfig();
-            }
-
-            isCoreInited = true;
-
-            Insider.Instance.registerInsiderCallback(new InsiderCallback() {
+Insider.Instance.registerInsiderCallback(new InsiderCallback() {
                 @Override
                 public void doAction(JSONObject data, InsiderCallbackType type) {
                     try {
@@ -120,6 +110,17 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                 }
             });
 
+
+            Insider.Instance.init((Application) context.getApplicationContext(), partnerName);
+            Insider.Instance.setSDKType("flutter");
+            Insider.Instance.setHybridSDKVersion(call.argument("sdkVersion").toString());
+            Insider.Instance.resumeSessionHybridConfig(activity);
+
+            if (isCoreInited) {
+                Insider.Instance.resumeSessionHybridRequestConfig();
+            }
+
+            isCoreInited = true;
             FirebaseMessaging.getInstance().getToken()
                     .addOnCompleteListener(new OnCompleteListener<String>() {
                         @Override
