@@ -101,7 +101,9 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             data.put("type", type.ordinal());
                             mEventSink.success(data.toString());
 
-                            handlePushDataForAppsFlyer(data.getJSONObject("data"));
+                            if (data.has("data")) {
+                                handlePushDataForAppsFlyer(data.getJSONObject("data"));
+                            }
                         }
                     } catch (Exception e) {
                         mEventSink.error("[INSIDER][registerInsiderCallback]", "Callback exception", data);
