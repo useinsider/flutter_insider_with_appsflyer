@@ -366,3 +366,27 @@
 ## 3.17.0+nh
 
 * Android & iOS SDK updated.
+
+## 3.18.0
+
+* Android & iOS SDK updated.
+
+## 3.18.0+nh
+
+* Android & iOS SDK updated.
+*
+## 3.18.1
+
+* Android & iOS SDK updated.
+
+## 3.18.1+nh
+
+* Android & iOS SDK updated.
+*
+## 3.18.2
+
+* iOS SDK updated.
+
+## 3.18.2+nh
+
+* iOS SDK updated.

@@ -104,6 +104,15 @@ class Constants {
   static const String QUANTITY = "quantity";
   static const String SIZE = "size";
   static const String GROUP_CODE = "groupcode";
+  static const String BRAND = "brnd";
+  static const String SKU = "sku";
+  static const String PRODUCT_GENDER = "ge";
+  static const String MULTIPACK = "mlt";
+  static const String PRODUCT_TYPE = "pt";
+  static const String GTIN = "gt";
+  static const String DESCRIPTION = "desc";
+  static const String TAGS = "tags";
+  static final String IS_IN_STOCK = "iis";
 
   // Callback Types
   static const String CALLBACK_EVENT = "event";

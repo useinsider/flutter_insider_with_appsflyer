@@ -188,7 +188,6 @@ FlutterEventSink mEventSink;
         [Insider registerInsiderCallbackWithSelector:@selector(registerCallback:) sender:self];
         [Insider setHybridSDKVersion:call.arguments[@"sdkVersion"]];
         [Insider initWithLaunchOptions:nil partnerName:call.arguments[@"partnerName"] appGroup:call.arguments[@"appGroup"]];
-        [Insider hybridApplicationDidBecomeActive];
         result(@[]);
     } @catch (NSException *exception){
         [Insider sendError:exception desc:@"RNInsider.m - initWithAppGroup"];
@@ -204,7 +203,6 @@ FlutterEventSink mEventSink;
         [Insider registerInsiderCallbackWithSelector:@selector(registerCallback:) sender:self];
         [Insider setHybridSDKVersion:call.arguments[@"sdkVersion"]];
         [Insider initWithLaunchOptions:nil partnerName:call.arguments[@"partnerName"] appGroup:call.arguments[@"appGroup"] customEndpoint:call.arguments[@"customEndpoint"]];
-        [Insider hybridApplicationDidBecomeActive];
         result(@[]);
     } @catch (NSException *exception){
         [Insider sendError:exception desc:@"RNInsider.m - initWithAppGroup"];

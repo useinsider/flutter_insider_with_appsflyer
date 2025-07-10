@@ -263,4 +263,112 @@ class FlutterInsiderProduct {
 
     return this;
   }
+
+  FlutterInsiderProduct setBrand(String brand) {
+    try {
+      if (brand != null && brand.isNotEmpty) {
+        this.productOptMap[Constants.BRAND] = brand;
+      }
+      return this;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+      return this;
+    }
+  }
+
+  FlutterInsiderProduct setGender(String gender) {
+    try {
+      if (gender != null && gender.isNotEmpty) {
+        this.productOptMap[Constants.PRODUCT_GENDER] = gender;
+      }
+      return this;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+      return this;
+    }
+  }
+
+  FlutterInsiderProduct setDescription(String description) {
+    try {
+      if (description != null) {
+        this.productOptMap[Constants.DESCRIPTION] = description;
+      }
+      return this;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+      return this;
+    }
+  }
+
+  FlutterInsiderProduct setSku(String sku) {
+    try {
+      if (sku != null) {
+        this.productOptMap[Constants.SKU] = sku;
+      }
+      return this;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+      return this;
+    }
+  }
+
+  FlutterInsiderProduct setMultipack(String multipack) {
+    try {
+      if (multipack != null) {
+        this.productOptMap[Constants.MULTIPACK] = multipack;
+      }
+      return this;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+      return this;
+    }
+  }
+
+  FlutterInsiderProduct setProductType(String productType) {
+    try {
+      if (productType != null) {
+        this.productOptMap[Constants.PRODUCT_TYPE] = productType;
+      }
+      return this;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+      return this;
+    }
+  }
+
+  FlutterInsiderProduct setGtin(String gtin) {
+    try {
+      if (gtin != null) {
+        this.productOptMap[Constants.GTIN] = gtin;
+      }
+      return this;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+      return this;
+    }
+  }
+
+  FlutterInsiderProduct setTags(List<String> tags) {
+    try {
+      if (tags != null) {
+        this.productOptMap[Constants.TAGS] = tags;
+      }
+      return this;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+      return this;
+    }
+  }
+
+  FlutterInsiderProduct setInStock(bool isInStock) {
+    try {
+      if (isInStock != null) {
+        this.productOptMap[Constants.IS_IN_STOCK] = isInStock;
+      }
+      return this;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+      return this;
+    }
+  }
 }

@@ -51,8 +51,8 @@ import android.os.Bundle;
 
 import java.util.Iterator;
 
-public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.StreamHandler, 
-    FlutterPlugin, ActivityAware {
+public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.StreamHandler,
+        FlutterPlugin, ActivityAware {
 
     private Activity activity;
     private Context context;
@@ -93,7 +93,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
         try {
             String partnerName = call.argument("partnerName").toString();
 
-Insider.Instance.registerInsiderCallback(new InsiderCallback() {
+            Insider.Instance.registerInsiderCallback(new InsiderCallback() {
                 @Override
                 public void doAction(JSONObject data, InsiderCallbackType type) {
                     try {
@@ -110,7 +110,6 @@ Insider.Instance.registerInsiderCallback(new InsiderCallback() {
                 }
             });
 
-
             Insider.Instance.init((Application) context.getApplicationContext(), partnerName);
             Insider.Instance.setSDKType("flutter");
             Insider.Instance.setHybridSDKVersion(call.argument("sdkVersion").toString());
@@ -121,6 +120,7 @@ Insider.Instance.registerInsiderCallback(new InsiderCallback() {
             }
 
             isCoreInited = true;
+
             FirebaseMessaging.getInstance().getToken()
                     .addOnCompleteListener(new OnCompleteListener<String>() {
                         @Override
