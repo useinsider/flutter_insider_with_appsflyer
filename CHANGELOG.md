@@ -382,7 +382,7 @@
 ## 3.18.1+nh
 
 * Android & iOS SDK updated.
-*
+
 ## 3.18.2
 
 * iOS SDK updated.
@@ -390,3 +390,19 @@
 ## 3.18.2+nh
 
 * iOS SDK updated.
+
+## 3.18.3
+
+* Fixed timezone issue in Get Message Center date parameters.
+
+## 3.18.3+nh
+
+* Fixed timezone issue in Get Message Center date parameters.
+
+## 3.18.4
+
+* Android SDK updated.
+
+## 3.18.4+nh
+
+* Android SDK updated.

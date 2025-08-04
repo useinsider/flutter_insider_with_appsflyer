@@ -327,8 +327,8 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                         return;
                     }
                     InsiderHybrid.getMessageCenterData((int) call.argument(Constants.LIMIT),
-                            call.argument(Constants.START_DATE).toString(),
-                            call.argument(Constants.END_DATE).toString(), getMessageCenterCallback(result));
+                            (long) call.argument(Constants.START_DATE),
+                            (long) call.argument(Constants.END_DATE), getMessageCenterCallback(result));
                     break;
                 case InsiderHybridMethods.REMOVE_INAPP:
                     Insider.Instance.removeInapp(activity);

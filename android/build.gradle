@@ -1,5 +1,5 @@
 group 'com.useinsider.insider.flutter_insider'
-version '3.18.2+nh-SNAPSHOT'
+version '3.18.4+nh-SNAPSHOT'
 
 buildscript {
     repositories {
@@ -23,7 +23,7 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 34
+    compileSdkVersion 36
 
     defaultConfig {
         minSdkVersion 21
@@ -52,6 +52,6 @@ dependencies {
     implementation 'com.google.android.play:review:2.0.1'
 
     implementation 'com.appsflyer:af-android-sdk:6.14.0'
-    implementation 'com.useinsider:insider:14.10.4-nh'
-    implementation 'com.useinsider:insiderhybrid:1.3.1'
+    implementation 'com.useinsider:insider:14.10.6-nh'
+    implementation 'com.useinsider:insiderhybrid:1.3.2'
 }

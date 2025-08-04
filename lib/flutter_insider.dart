@@ -21,7 +21,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-3.18.2+nh";
+    args["sdkVersion"] = "F-3.18.4+nh";
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;
@@ -580,8 +580,8 @@ class FlutterInsider {
       
       Map<String, dynamic> args = <String, dynamic>{};
 
-      args['startDate'] = FlutterInsiderUtils.getDateForParsing(startDate);
-      args['endDate'] = FlutterInsiderUtils.getDateForParsing(endDate);
+      args['startDate'] = startDate.millisecondsSinceEpoch;
+      args['endDate'] = endDate.millisecondsSinceEpoch;
       args['limit'] = limit;
 
       List? list = await _channel.invokeMethod(Constants.GET_MESSAGE_CENTER_DATA, args);

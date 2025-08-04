@@ -528,9 +528,12 @@ FlutterEventSink mEventSink;
 - (void)getMessageCenter:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         if (!call.arguments[@"startDate"] || !call.arguments[@"endDate"] || !call.arguments[@"limit"]) return;
-        [InsiderHybrid getMessageCenterDataWithLimit:[call.arguments[@"limit"] intValue] startDate:call.arguments[@"startDate"] endDate:call.arguments[@"endDate"] success:^(NSArray *messageCenterData) {
-            result(messageCenterData);
-        }];
+        [InsiderHybrid getMessageCenterDataWithLimit:[call.arguments[@"limit"] integerValue]
+                                           startDate:[call.arguments[@"startDate"] integerValue]
+                                             endDate:[call.arguments[@"endDate"] integerValue]
+                                             success:^(NSArray *messageCenterData) {
+                                                 result(messageCenterData);
+                                             }];
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }

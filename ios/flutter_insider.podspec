@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'flutter_insider'
-  s.version          = '3.18.2'
+  s.version          = '3.18.4'
   s.summary          = 'Flutter Plugin For Insider SDK'
   s.description      = <<-DESC
   Flutter Plugin For Insider SDK
@@ -14,6 +14,6 @@ Pod::Spec.new do |s|
   s.dependency 'Flutter'
   s.dependency 'InsiderMobile', '13.12.2'
   s.dependency 'InsiderGeofence', '1.2.2'
-  s.dependency 'InsiderHybrid', '1.7.2'
+  s.dependency 'InsiderHybrid', '1.7.3'
   s.ios.deployment_target = '12.0'
 end

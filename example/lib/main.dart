@@ -259,8 +259,8 @@ class _MyAppState extends State<MyApp> {
     FlutterInsider.Instance.setGDPRConsent(true);
 
     // --- MESSAGE CENTER --- //
-    DateTime endDate = new DateTime(2019);
-    DateTime startDate = new DateTime(2020, DateTime.december);
+    DateTime startDate = DateTime.now().subtract(Duration(days: 30));
+    DateTime endDate = DateTime.now();
     print("[INSIDER][startDate]: " + startDate.toString());
     print("[INSIDER][endDate]: " + endDate.toString());
     List messageCenterData = await FlutterInsider.Instance.getMessageCenterData(
