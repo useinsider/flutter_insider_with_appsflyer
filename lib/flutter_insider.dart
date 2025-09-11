@@ -21,7 +21,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-3.18.4+nh";
+    args["sdkVersion"] = "F-4.0.1+nh";
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;
@@ -135,6 +135,19 @@ class FlutterInsider {
   Future<void> startTrackingGeofence() async {
     try {
       await _channel.invokeMethod(Constants.START_TRACKING_GEOFENCE);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
+  Future<void> setAllowsBackgroundLocationUpdates(
+      bool allowsBackgroundLocationUpdates) async {
+    try {
+      if (allowsBackgroundLocationUpdates == null) return;
+      Map<String, dynamic> args = <String, dynamic>{};
+      args["allowsBackgroundLocationUpdates"] = allowsBackgroundLocationUpdates;
+      await _channel.invokeMethod(
+          Constants.SET_ALLOWS_BACKGROUND_LOCATION_UPDATES, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }

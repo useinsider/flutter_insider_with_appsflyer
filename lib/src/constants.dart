@@ -4,6 +4,8 @@ class Constants {
   static const String INIT_WITH_CUSTOM_ENDPOINT = "initWithCustomEndpoint";
   static const String REGISTER_WITH_QUIET_PERMISSION = "registerWithQuietPermission";
   static const String START_TRACKING_GEOFENCE = "startTrackingGeofence";
+  static const String SET_ALLOWS_BACKGROUND_LOCATION_UPDATES =
+      "setAllowsBackgroundLocationUpdates";
   static const String HANDLE_NOTIFICATION = "handleNotification";
   static const String SET_GDPR_CONSENT = "setGDPRConsent";
   static const String SET_MOBILE_APP_ACCESS = "setMobileAppAccess";

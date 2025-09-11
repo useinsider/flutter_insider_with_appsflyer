@@ -406,3 +406,27 @@
 ## 3.18.4+nh
 
 * Android SDK updated.
+
+## 3.18.5
+
+* Android & iOS SDK updated.
+
+## 3.18.5+nh
+
+* Android & iOS SDK updated.
+
+## 4.0.0
+
+* Android & iOS SDK updated.
+
+## 4.0.0+nh
+
+* Android & iOS SDK updated.
+
+## 4.0.1
+
+* Android SDK updated.
+
+## 4.0.1+nh
+
+* Android SDK updated.

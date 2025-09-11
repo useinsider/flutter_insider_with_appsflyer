@@ -36,6 +36,8 @@ FlutterEventSink mEventSink;
         [self initWithCustomEndpoint:call withResult:result];
     } else if ([call.method isEqualToString:START_TRACKING_GEOFENCE]){
         [self startTrackingGeofence:call];
+    } else if ([call.method isEqualToString:SET_ALLOWS_BACKGROUND_LOCATION_UPDATES]) {
+        [self setAllowsBackgroundLocationUpdates:call];
     } else if ([call.method isEqualToString:REGISTER_WITH_QUIET_PERMISSION]) {
         [self registerWithQuietPermission:call];
     } else if ([call.method isEqualToString:HANDLE_NOTIFICATION]) {
@@ -241,6 +243,15 @@ FlutterEventSink mEventSink;
 - (void)startTrackingGeofence:(FlutterMethodCall *)call {
     @try {
         [InsiderGeofence startTracking];
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+- (void)setAllowsBackgroundLocationUpdates:(FlutterMethodCall *)call {
+    @try {
+        if (!call.arguments[@"allowsBackgroundLocationUpdates"]) return;
+        [InsiderGeofence setAllowsBackgroundLocationUpdates:[call.arguments[@"allowsBackgroundLocationUpdates"] boolValue]];
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
