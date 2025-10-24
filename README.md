@@ -1,14 +1,19 @@
-# flutter_insider
+# flutter_insider_with_appsflyer
 
-A Flutter Plugin For Insider SDK
+This plugin is a custom plugin that includes both Insider and AppsFlyer SDKs.
 
 ## Getting Started
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/developing-packages/),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+To integrate, add the following code to your `pubspec.yaml` file.
 
-For help getting started with Flutter, view our 
-[online documentation](https://flutter.dev/docs), which offers tutorials, 
-samples, guidance on mobile development, and a full API reference.
+```
+dependencies:
+  flutter_insider_with_appsflyer:
+    git:
+      url: https://github.com/useinsider/flutter_insider_with_appsflyer
+      ref: main
+```
+
+### Note
+
+This is a custom plugin. Please consult with Insider plugin providers before integrating.
