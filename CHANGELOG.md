@@ -423,10 +423,55 @@
 
 * Android & iOS SDK updated.
 
-## 4.0.1
+## 4.0.2
 
 * Android SDK updated.
 
-## 4.0.1+nh
+## 4.0.2+nh
 
 * Android SDK updated.
+
+## 4.0.3
+
+* Android & iOS SDK updated.
+
+## 4.0.3+nh
+
+* Android & iOS SDK updated.
+
+## 4.0.4
+
+* No changes.
+
+## 4.0.4+nh
+
+* Removed Huawei related dependencies.
+
+## 4.0.5
+
+* Updated iOS SDK to latest version.
+* Updated Huawei related dependencies (16 KB page size fix.)
+
+## 4.0.5+nh
+
+* Updated iOS SDK to latest version.
+
+## 4.0.6
+
+* Added setProductURL method to InsiderProduct
+* Added logoutResettingInsiderID to InsiderUser
+* Android & iOS SDK updated.
+
+## 4.0.6+nh
+
+* Added setProductURL method to InsiderProduct
+* Added logoutResettingInsiderID to InsiderUser
+* Android & iOS SDK updated.
+
+## 4.0.7
+
+* iOS SDK updated.
+
+## 4.0.7+nh
+
+* iOS SDK updated.

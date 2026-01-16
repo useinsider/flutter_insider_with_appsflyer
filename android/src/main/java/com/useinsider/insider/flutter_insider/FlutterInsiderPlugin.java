@@ -215,6 +215,10 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                 case InsiderHybridMethods.START_TRACKING_GEOFENCE:
                     Insider.Instance.startTrackingGeofence();
                     break;
+                case "setAllowsBackgroundLocationUpdates":
+                    if (!call.hasArgument("allowsBackgroundLocationUpdates"))
+                        return;
+                    break;
                 case InsiderHybridMethods.SET_GDPR_CONSENT:
                     if (!call.hasArgument("consent"))
                         return;
@@ -516,6 +520,56 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     break;
                 case InsiderHybridMethods.LOGOUT:
                     Insider.Instance.getCurrentUser().logout();
+                    result.success("");
+                    break;
+                case "logoutResettingInsiderID":
+                    InsiderIdentifiers[] logoutIdentifiersArray = null;
+                    if (call.hasArgument("additionalIdentifiers")) {
+                        ArrayList<Map<String, Object>> logoutIdentifiersList = call.argument("additionalIdentifiers");
+                        if (logoutIdentifiersList != null && !logoutIdentifiersList.isEmpty()) {
+                            logoutIdentifiersArray = new InsiderIdentifiers[logoutIdentifiersList.size()];
+                            for (int i = 0; i < logoutIdentifiersList.size(); i++) {
+                                Map<String, Object> logoutIdentifiersMap = logoutIdentifiersList.get(i);
+                                InsiderIdentifiers logoutInsiderIdentifiers = new InsiderIdentifiers();
+                                for (String key : logoutIdentifiersMap.keySet()) {
+                                    switch (key) {
+                                        case InsiderHybridMethods.ADD_EMAIL:
+                                            logoutInsiderIdentifiers.addEmail(String.valueOf(logoutIdentifiersMap.get(key)));
+                                            break;
+                                        case InsiderHybridMethods.ADD_PHONE_NUMBER:
+                                            logoutInsiderIdentifiers.addPhoneNumber(String.valueOf(logoutIdentifiersMap.get(key)));
+                                            break;
+                                        case InsiderHybridMethods.ADD_USER_ID:
+                                            logoutInsiderIdentifiers.addUserID(String.valueOf(logoutIdentifiersMap.get(key)));
+                                            break;
+                                        default:
+                                            logoutInsiderIdentifiers.addCustomIdentifier(key, String.valueOf(logoutIdentifiersMap.get(key)));
+                                            break;
+                                    }
+                                }
+                                logoutIdentifiersArray[i] = logoutInsiderIdentifiers;
+                            }
+                        }
+                    }
+
+                    if (call.hasArgument("insiderIDResult")) {
+                        Insider.Instance.getCurrentUser().logoutResettingInsiderID(logoutIdentifiersArray, new InsiderUser.InsiderIDResult() {
+                            @Override
+                            public void insiderIDResult(String insiderID) {
+                                MethodResultWrapper resultWrapper = new MethodResultWrapper(result);
+
+                                if (insiderID != null) {
+                                    resultWrapper.success(insiderID);
+                                    return;
+                                }
+
+                                resultWrapper.success("");
+                            }
+                        });
+                        return;
+                    }
+
+                    Insider.Instance.getCurrentUser().logoutResettingInsiderID(logoutIdentifiersArray);
                     result.success("");
                     break;
                 case InsiderHybridMethods.ITEM_PURCHASED:

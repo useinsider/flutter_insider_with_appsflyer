@@ -44,6 +44,7 @@ class Constants {
   static const String UNSET_CUSTOM_ATTRIBUTE = "unsetCustomAttribute";
   static const String LOGIN = "login";
   static const String LOGOUT = "logout";
+  static const String LOGOUT_RESETTING_INSIDER_ID = "logoutResettingInsiderID";
   static const String ENABLE_IDFA_COLLECTION = 'enableIDFACollection';
   static const String SIGN_UP_CONFIRMATION = 'signUpConfirmation';
   static const String SET_ACTIVE_FOREGROUND_PUSH_VIEW = 'setActiveForegroundPushView';
@@ -115,6 +116,7 @@ class Constants {
   static const String DESCRIPTION = "desc";
   static const String TAGS = "tags";
   static final String IS_IN_STOCK = "iis";
+  static const String PRODUCT_URL = "url";
 
   // Callback Types
   static const String CALLBACK_EVENT = "event";

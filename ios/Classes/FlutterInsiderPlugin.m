@@ -144,6 +144,8 @@ FlutterEventSink mEventSink;
         [self login:call withResult:result];
     } else if ([call.method isEqualToString:LOGOUT]) {
         [self logout:call withResult:result];
+    } else if ([call.method isEqualToString:@"logoutResettingInsiderID"]) {
+        [self logoutResettingInsiderID:call withResult:result];
     } else if ([call.method isEqualToString:PUT_EXCEPTION]) {
         [self putException:call];
     } else if ([call.method isEqualToString:SET_CUSTOM_ENDPOINT]) {
@@ -793,6 +795,46 @@ FlutterEventSink mEventSink;
     @try {
         [[Insider getCurrentUser] logout];
         result(@[]);
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
+- (void)logoutResettingInsiderID:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        NSArray<InsiderIdentifiers *> *additionalIdentifiers = @[];
+        if (call.arguments[@"additionalIdentifiers"]) {
+            NSArray *identifiersList = call.arguments[@"additionalIdentifiers"];
+            if (identifiersList && identifiersList.count > 0) {
+                NSMutableArray<InsiderIdentifiers *> *identifiersArray = [NSMutableArray array];
+                for (NSDictionary *identifiersMap in identifiersList) {
+                    InsiderIdentifiers *insiderIdentifiers = [[InsiderIdentifiers alloc] init];
+                    for (NSString *key in identifiersMap.allKeys) {
+                        if([key isEqualToString:ADD_EMAIL]) {
+                            insiderIdentifiers.addEmail([identifiersMap objectForKey:key]);
+                        } else if([key isEqualToString:ADD_PHONE_NUMBER]) {
+                            insiderIdentifiers.addPhoneNumber([identifiersMap objectForKey:key]);
+                        } else if([key isEqualToString:ADD_USER_ID]) {
+                            insiderIdentifiers.addUserID([identifiersMap objectForKey:key]);
+                        } else {
+                            insiderIdentifiers.addCustomIdentifier(key, [identifiersMap objectForKey:key]);
+                        }
+                    }
+                    [identifiersArray addObject:insiderIdentifiers];
+                }
+                additionalIdentifiers = identifiersArray;
+            }
+        }
+
+        if (call.arguments[@"insiderIDResult"]) {
+            [[Insider getCurrentUser] logoutResettingInsiderID:additionalIdentifiers insiderIDResult:^(NSString *insiderID) {
+                result(insiderID);
+            }];
+            return;
+        }
+
+        [[Insider getCurrentUser] logoutResettingInsiderID:additionalIdentifiers];
+        result(@"");
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
