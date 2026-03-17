@@ -7,6 +7,7 @@ class Constants {
   static const String SET_ALLOWS_BACKGROUND_LOCATION_UPDATES =
       "setAllowsBackgroundLocationUpdates";
   static const String HANDLE_NOTIFICATION = "handleNotification";
+  static const String TRIGGER_PUSH_PROCESS_WITH_NOTIFICATION_DATA = "triggerPushProcessWithNotificationData";
   static const String SET_GDPR_CONSENT = "setGDPRConsent";
   static const String SET_MOBILE_APP_ACCESS = "setMobileAppAccess";
   static const String GET_CONTENT_STRING_WITH_NAME = "getContentStringWithName";
@@ -34,6 +35,7 @@ class Constants {
   static const String GET_SMART_RECOMMENDATION_WITH_PRODUCT_IDS = "getSmartRecommendationWithProductIDs";
   static const String CLICK_SMART_RECOMMENDATION_PRODUCT = "clickSmartRecommendationProduct";
   static const String GET_MESSAGE_CENTER_DATA = "getMessageCenterData";
+  static const String GET_MESSAGE_CENTER_DATA_WITH_IDENTIFIERS = "getMessageCenterDataWithIdentifiers";
   static const String TAG_EVENT = "tagEvent";
   static const String SET_CUSTOM_ATTRIBUTE_WITH_STRING = "setCustomAttributeWithString";
   static const String SET_CUSTOM_ATTRIBUTE_WITH_INT = "setCustomAttributeWithInt";
@@ -60,6 +62,7 @@ class Constants {
   static const String ENABLE_CARRIER_COLLECTION = 'enableCarrierCollection';
   static const String ENABLE_IP_COLLECTION = 'enableIpCollection';
   static const String ENABLE_LOCATION_COLLECTION = 'enableLocationCollection';
+  static const String SET_INTERNAL_BROWSER_CLOSE_BUTTON_POSITION = 'setInternalBrowserCloseButtonPosition';
 
   static const String ADD_EMAIL = "addEmail";
   static const String ADD_PHONE_NUMBER = "addPhoneNumber";
@@ -67,6 +70,7 @@ class Constants {
   static const String PRODUCTS = "products";
   static const String PRODUCT_MUST_MAP = "productMustMap";
   static const String PRODUCT_OPT_MAP = "productOptMap";
+  static const String CUSTOM_PARAMETERS = "customParameters";
 
   //user attributes
   static const String SET_GENDER = "setGender";

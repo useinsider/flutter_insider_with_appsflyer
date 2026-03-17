@@ -3,8 +3,22 @@ import 'utils.dart';
 import 'package:flutter/services.dart';
 
 class FlutterInsiderProduct {
-  Map<String, dynamic> productMustMap = new Map();
-  Map<String, dynamic> productOptMap = new Map();
+  Map<String, dynamic> requiredFields = <String, dynamic>{};
+  Map<String, dynamic> optionalFields = <String, dynamic>{};
+  List<Map<String, dynamic>> customParameters = <Map<String, dynamic>>[];
+
+  Map<String, dynamic> get productMustMap => requiredFields;
+  Map<String, dynamic> get productOptMap {
+    final Map<String, dynamic> combined = Map.from(optionalFields);
+    for (final param in customParameters) {
+      final key = param['key'] as String?;
+      if (key != null) {
+        final value = param['value'];
+        combined[key] = value;
+      }
+    }
+    return combined;
+  }
   late MethodChannel _channel;
 
   FlutterInsiderProduct(
@@ -17,145 +31,166 @@ class FlutterInsiderProduct {
       String currency) {
     this._channel = methodChannel;
 
-    productMustMap[Constants.PRODUCT_ID] = productID;
-    productMustMap[Constants.PRODUCT_NAME] = name;
-    productMustMap[Constants.TAXONOMY] = taxonomy;
-    productMustMap[Constants.IMAGE_URL] = imageURL;
-    productMustMap[Constants.UNIT_PRICE] = unitPrice;
-    productMustMap[Constants.CURRENCY] = currency;
+    requiredFields['product_id'] = productID;
+    requiredFields['name'] = name;
+    requiredFields['taxonomy'] = taxonomy;
+    requiredFields['image_url'] = imageURL;
+    requiredFields['price'] = unitPrice;
+    requiredFields['currency'] = currency;
   }
 
   FlutterInsiderProduct setColor(String color) {
     try {
-      this.productOptMap[Constants.COLOR] = color;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["color"] = color;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setVoucherName(String voucherName) {
     try {
-      this.productOptMap[Constants.VOUCHER_NAME] = voucherName;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["voucher_name"] = voucherName;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setPromotionName(String promotionName) {
     try {
-      this.productOptMap[Constants.PROMOTION_NAME] = promotionName;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["promotion_name"] = promotionName;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setSalePrice(double salePrice) {
     try {
-      this.productOptMap[Constants.SALE_PRICE] = salePrice;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["sale_price"] = salePrice;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setShippingCost(double shippingCost) {
     try {
-      this.productOptMap[Constants.SHIPPING_COST] = shippingCost;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["shipping_cost"] = shippingCost;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setVoucherDiscount(double voucherDiscount) {
     try {
-      this.productOptMap[Constants.VOUCHER_DISCOUNT] = voucherDiscount;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["voucher_discount"] = voucherDiscount;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setPromotionDiscount(double promotionDiscount) {
     try {
-      this.productOptMap[Constants.PROMOTION_DISCOUNT] = promotionDiscount;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["promotion_discount"] = promotionDiscount;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setStock(int stock) {
     try {
-      this.productOptMap[Constants.STOCK] = stock;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["stock"] = stock;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setQuantity(int quantity) {
     try {
-      this.productOptMap[Constants.QUANTITY] = quantity;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["quantity"] = quantity;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setSize(String size) {
     try {
-      this.productOptMap[Constants.SIZE] = size;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["size"] = size;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setCustomAttributeWithString(String key, String value) {
     try {
-      this.productOptMap[key] = value;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.customParameters.add({
+        'type': 'string',
+        'key': key,
+        'value': value,
+      });
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setCustomAttributeWithDouble(String key, double value) {
     try {
-      this.productOptMap[key] = value;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.customParameters.add({
+        'type': 'double',
+        'key': key,
+        'value': value,
+      });
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setCustomAttributeWithInt(String key, int value) {
     try {
-      this.productOptMap[key] = value;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.customParameters.add({
+        'type': 'integer',
+        'key': key,
+        'value': value,
+      });
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setCustomAttributeWithBoolean(String key, bool value) {
     try {
-      this.productOptMap[key] = value;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.customParameters.add({
+        'type': 'boolean',
+        'key': key,
+        'value': value,
+      });
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setCustomAttributeWithDate(String key, DateTime value) {
     try {
-      this.productOptMap[key] = FlutterInsiderUtils.getDateForParsing(value);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      final int epochMilliseconds = value.millisecondsSinceEpoch;
+      this.customParameters.add({
+        'type': 'date',
+        'key': key,
+        'value': epochMilliseconds.toString(),
+      });
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
@@ -164,18 +199,22 @@ class FlutterInsiderProduct {
   FlutterInsiderProduct setCustomAttributeWithArray(
       String key, List<String> value) {
     try {
-      this.productOptMap[key] = value;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.customParameters.add({
+        'type': 'strings',
+        'key': key,
+        'value': value,
+      });
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
 
   FlutterInsiderProduct setGroupCode(String groupCode) {
     try {
-      this.productOptMap[Constants.GROUP_CODE] = groupCode;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.optionalFields["group_code"] = groupCode;
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
@@ -183,7 +222,7 @@ class FlutterInsiderProduct {
   FlutterInsiderProduct setBrand(String brand) {
     try {
       if (brand.isNotEmpty) {
-        this.productOptMap[Constants.BRAND] = brand;
+        this.optionalFields["brand"] = brand;
       }
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
@@ -194,7 +233,7 @@ class FlutterInsiderProduct {
   FlutterInsiderProduct setGender(String gender) {
     try {
       if (gender.isNotEmpty) {
-        this.productOptMap[Constants.PRODUCT_GENDER] = gender;
+        this.optionalFields["gender"] = gender;
       }
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
@@ -204,7 +243,7 @@ class FlutterInsiderProduct {
 
   FlutterInsiderProduct setDescription(String description) {
     try {
-      this.productOptMap[Constants.DESCRIPTION] = description;
+      this.optionalFields["description"] = description;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
@@ -213,7 +252,7 @@ class FlutterInsiderProduct {
 
   FlutterInsiderProduct setSku(String sku) {
     try {
-      this.productOptMap[Constants.SKU] = sku;
+      this.optionalFields["sku"] = sku;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
@@ -222,7 +261,7 @@ class FlutterInsiderProduct {
 
   FlutterInsiderProduct setMultipack(String multipack) {
     try {
-      this.productOptMap[Constants.MULTIPACK] = multipack;
+      this.optionalFields["multipack"] = multipack;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
@@ -231,7 +270,7 @@ class FlutterInsiderProduct {
 
   FlutterInsiderProduct setProductType(String productType) {
     try {
-      this.productOptMap[Constants.PRODUCT_TYPE] = productType;
+      this.optionalFields["product_type"] = productType;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
@@ -240,7 +279,7 @@ class FlutterInsiderProduct {
 
   FlutterInsiderProduct setGtin(String gtin) {
     try {
-      this.productOptMap[Constants.GTIN] = gtin;
+      this.optionalFields["gtin"] = gtin;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
@@ -249,7 +288,7 @@ class FlutterInsiderProduct {
 
   FlutterInsiderProduct setTags(List<String> tags) {
     try {
-      this.productOptMap[Constants.TAGS] = tags;
+      this.optionalFields["tags"] = tags;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
@@ -258,7 +297,7 @@ class FlutterInsiderProduct {
 
   FlutterInsiderProduct setInStock(bool isInStock) {
     try {
-      this.productOptMap[Constants.IS_IN_STOCK] = isInStock;
+      this.optionalFields["in_stock"] = isInStock;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
@@ -268,7 +307,7 @@ class FlutterInsiderProduct {
   FlutterInsiderProduct setProductURL(String productURL) {
     try {
       if (productURL.isNotEmpty) {
-        this.productOptMap[Constants.PRODUCT_URL] = productURL;
+        this.optionalFields["product_url"] = productURL;
       }
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
@@ -282,19 +321,13 @@ class FlutterInsiderProduct {
       List<num>? validArray = FlutterInsiderUtils.validateNumericArray(values);
       if (validArray == null) return this;
 
-      bool allIntegers = validArray
-          .every((num e) => e is int || (e is double && e == e.toInt()));
-
-      if (allIntegers) {
-        List<int> intArray = validArray.map((num e) => e.toInt()).toList();
-        this.productOptMap[key] = intArray;
-      } else {
-        List<double> doubleArray =
-            validArray.map((num e) => e.toDouble()).toList();
-        this.productOptMap[key] = doubleArray;
-      }
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.customParameters.add({
+        'type': 'numbers',
+        'key': key,
+        'value': validArray,
+      });
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
@@ -307,9 +340,13 @@ class FlutterInsiderProduct {
       if (validArray == null) {
         validArray = [];
       }
-      this.productOptMap[key] = validArray;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      this.customParameters.add({
+        'type': 'strings',
+        'key': key,
+        'value': validArray,
+      });
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }

@@ -475,3 +475,23 @@
 ## 4.0.7+nh
 
 * iOS SDK updated.
+
+## 4.1.0
+
+* Fixed timezone drifting issue in date object.
+* Added setInternalBrowserCloseButtonPosition method.
+* Added custom parameters support for default events methods (e.g., visitHomePage, visitCartPage etc.).
+* Added triggerPushProcessWithNotificationData method.
+* Added getMessageCenterDataWithIdentifiers method.
+* Added saleID support for visitCartPage and itemRemovedFromCart methods.
+* Android & iOS SDK updated.
+
+## 4.1.0+nh
+
+* Fixed timezone drifting issue in date object.
+* Added setInternalBrowserCloseButtonPosition method.
+* Added custom parameters support for default events methods (e.g., visitHomePage, visitCartPage etc.).
+* Added triggerPushProcessWithNotificationData method.
+* Added getMessageCenterDataWithIdentifiers method.
+* Added saleID support for visitCartPage and itemRemovedFromCart methods.
+* Android & iOS SDK updated.

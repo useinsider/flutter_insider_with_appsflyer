@@ -6,9 +6,12 @@ import 'src/product.dart';
 import 'src/event.dart';
 import 'src/utils.dart';
 import 'src/constants.dart';
+import 'enum/InsiderCloseButtonPosition.dart';
+import 'src/identifiers.dart';
 
 class FlutterInsider {
   static FlutterInsider Instance = new FlutterInsider();
+  InsiderCloseButtonPosition closeButtonPosition = InsiderCloseButtonPosition();
   static FlutterInsiderUser? _insiderUser;
   static const MethodChannel _channel = const MethodChannel('flutter_insider');
   static const EventChannel _eventChannel =
@@ -24,7 +27,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-4.0.7+nh";
+    args["sdkVersion"] = "F-4.1.0+nh";
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;
@@ -57,19 +60,19 @@ class FlutterInsider {
       String partnerName, String appGroup, Function function) async {
     try {
       registerEventChannel(function, Constants.CALLBACK_EVENT);
-      initFlutterBase(partnerName, appGroup, null);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      await initFlutterBase(partnerName, appGroup, null);
+    } catch (e) {
+      await FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
   Future<void> initWithCustomEndpoint(String partnerName, String appGroup,
       String customEndpoint, Function function) async {
     try {
-      initFlutterBase(partnerName, appGroup, customEndpoint);
+      await initFlutterBase(partnerName, appGroup, customEndpoint);
       registerEventChannel(function, Constants.CALLBACK_EVENT);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+    } catch (e) {
+      await FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
@@ -144,11 +147,29 @@ class FlutterInsider {
     }
   }
 
+  /// Handles a push notification with the given notification data.
+  ///
+  /// On Android, this method displays the notification in the notification center using the provided data.
+  /// On iOS, this method directly processes and triggers the notification data.
   Future<void> handleNotification(Map<String, dynamic> notification) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
       args["notification"] = notification['data'];
       await _channel.invokeMethod(Constants.HANDLE_NOTIFICATION, args);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
+  /// Triggers the push process directly with the given notification data.
+  ///
+  /// Unlike [handleNotification], this method directly processes and triggers the notification data
+  /// on both Android and iOS platforms without displaying it in the notification center.
+  Future<void> triggerPushProcessWithNotificationData(Map<String, String> data) async {
+    try {
+      Map<String, dynamic> args = <String, dynamic>{};
+      args["notification"] = data;
+      await _channel.invokeMethod(Constants.TRIGGER_PUSH_PROCESS_WITH_NOTIFICATION_DATA, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -266,66 +287,88 @@ class FlutterInsider {
     }
   }
 
-  Future<void> visitHomePage() async {
+  Future<void> visitHomePage({Map<String, Object>? customParameters}) async {
     try {
-      await _channel.invokeMethod(Constants.VISIT_HOME_PAGE);
+      Map<String, dynamic> args = <String, dynamic>{};
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
+      await _channel.invokeMethod(Constants.VISIT_HOME_PAGE, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
   }
 
-  Future<void> visitListingPage(List<String> taxonomy) async {
+  Future<void> visitListingPage(List<String> taxonomy, {Map<String, Object>? customParameters}) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
       args["taxonomy"] = taxonomy;
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
       await _channel.invokeMethod(Constants.VISIT_LISTING_PAGE, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
   }
 
-  Future<void> visitProductDetailPage(FlutterInsiderProduct product) async {
+  Future<void> visitProductDetailPage(FlutterInsiderProduct product, {Map<String, Object>? customParameters}) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
-      args[Constants.PRODUCT_MUST_MAP] = product.productMustMap;
-      args[Constants.PRODUCT_OPT_MAP] = product.productOptMap;
+      args['requiredFields'] = product.requiredFields;
+      args['optionalFields'] = product.optionalFields;
+      args['productCustomParameters'] = product.customParameters;
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
       await _channel.invokeMethod(Constants.VISIT_PRODUCT_DETAIL_PAGE, args);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
-  Future<void> visitCartPage(List<FlutterInsiderProduct> products) async {
+  Future<void> visitCartPage(List<FlutterInsiderProduct> products, {String? saleID, Map<String, Object>? customParameters}) async {
     try {
       var list = List<Map>.filled(0, <String, dynamic>{}, growable: true);
       Map<String, dynamic> args = <String, dynamic>{};
       for (var product in products) {
         Map<String, dynamic> map = <String, dynamic>{};
-        map[Constants.PRODUCT_MUST_MAP] = product.productMustMap;
-        map[Constants.PRODUCT_OPT_MAP] = product.productOptMap;
+        map['requiredFields'] = product.requiredFields;
+        map['optionalFields'] = product.optionalFields;
+        map['productCustomParameters'] = product.customParameters;
         list.add(map);
       }
       args[Constants.PRODUCTS] = list;
+      if (saleID != null && saleID.isNotEmpty) {
+        args['saleID'] = saleID;
+      }
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
       await _channel.invokeMethod(Constants.VISIT_CART_PAGE, args);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
-  Future<void> visitWishlistPage(List<FlutterInsiderProduct> products) async {
+  Future<void> visitWishlistPage(List<FlutterInsiderProduct> products, {Map<String, Object>? customParameters}) async {
     try {
       var list = List<Map>.filled(0, <String, dynamic>{}, growable: true);
       Map<String, dynamic> args = <String, dynamic>{};
       for (var product in products) {
         Map<String, dynamic> map = <String, dynamic>{};
-        map[Constants.PRODUCT_MUST_MAP] = product.productMustMap;
-        map[Constants.PRODUCT_OPT_MAP] = product.productOptMap;
+        map['requiredFields'] = product.requiredFields;
+        map['optionalFields'] = product.optionalFields;
+        map['productCustomParameters'] = product.customParameters;
         list.add(map);
       }
       args[Constants.PRODUCTS] = list;
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
       await _channel.invokeMethod(Constants.VISIT_WISHLIST_PAGE, args);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
@@ -340,71 +383,100 @@ class FlutterInsider {
   }
 
   Future<void> itemPurchased(
-      String uniqueSaleID, FlutterInsiderProduct product) async {
+      String uniqueSaleID, FlutterInsiderProduct product, {Map<String, Object>? customParameters}) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
       args['uniqueSaleID'] = uniqueSaleID;
-      args['productMustMap'] = product.productMustMap;
-      args['productOptMap'] = product.productOptMap;
+      args['requiredFields'] = product.requiredFields;
+      args['optionalFields'] = product.optionalFields;
+      args['productCustomParameters'] = product.customParameters;
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
       await _channel.invokeMethod(Constants.ITEM_PURCHASED, args);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
-  Future<void> itemAddedToCart(FlutterInsiderProduct product) async {
+  Future<void> itemAddedToCart(FlutterInsiderProduct product, {Map<String, Object>? customParameters}) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
-      args['productMustMap'] = product.productMustMap;
-      args['productOptMap'] = product.productOptMap;
+      args['requiredFields'] = product.requiredFields;
+      args['optionalFields'] = product.optionalFields;
+      args['productCustomParameters'] = product.customParameters;
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
       await _channel.invokeMethod(Constants.ITEM_ADDED_TO_CART, args);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
-  Future<void> itemRemovedFromCart(String productID) async {
+  Future<void> itemRemovedFromCart(String productID, {String? saleID, Map<String, Object>? customParameters}) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
       args['productID'] = productID;
+      if (saleID != null && saleID.isNotEmpty) {
+        args['saleID'] = saleID;
+      }
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
       await _channel.invokeMethod(Constants.ITEM_REMOVED_FROM_CART, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
   }
 
-  Future<void> cartCleared() async {
-    try {
-      await _channel.invokeMethod(Constants.CART_CLEARED);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
-    }
-  }
-
-  Future<void> itemAddedToWishlist(FlutterInsiderProduct product) async {
+  Future<void> cartCleared({Map<String, Object>? customParameters}) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
-      args['productMustMap'] = product.productMustMap;
-      args['productOptMap'] = product.productOptMap;
-      await _channel.invokeMethod(Constants.ITEM_ADDED_TO_WISH_LIST, args);
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
+      await _channel.invokeMethod(Constants.CART_CLEARED, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
   }
 
-  Future<void> itemRemovedFromWishlist(String productID) async {
+  Future<void> itemAddedToWishlist(FlutterInsiderProduct product, {Map<String, Object>? customParameters}) async {
+    try {
+      Map<String, dynamic> args = <String, dynamic>{};
+      args['requiredFields'] = product.requiredFields;
+      args['optionalFields'] = product.optionalFields;
+      args['productCustomParameters'] = product.customParameters;
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
+      await _channel.invokeMethod(Constants.ITEM_ADDED_TO_WISH_LIST, args);
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
+    }
+  }
+
+  Future<void> itemRemovedFromWishlist(String productID, {Map<String, Object>? customParameters}) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
       args['productID'] = productID;
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
       await _channel.invokeMethod(Constants.ITEM_REMOVED_FROM_WISH_LIST, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
   }
 
-  Future<void> wishlistCleared() async {
+  Future<void> wishlistCleared({Map<String, Object>? customParameters}) async {
     try {
-      await _channel.invokeMethod(Constants.WISH_LIST_CLEARED);
+      Map<String, dynamic> args = <String, dynamic>{};
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
+      await _channel.invokeMethod(Constants.WISH_LIST_CLEARED, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -436,13 +508,14 @@ class FlutterInsider {
       Map<String, dynamic> args = <String, dynamic>{};
       args['recommendationID'] = recommendationID;
       args['locale'] = locale;
-      args['productMustMap'] = product.productMustMap;
-      args['productOptMap'] = product.productOptMap;
+      args['requiredFields'] = product.requiredFields;
+      args['optionalFields'] = product.optionalFields;
+      args['customParameters'] = product.customParameters;
       Map? map = await _channel.invokeMethod(
           Constants.GET_SMART_RECOMMENDATION_WITH_PRODUCT, args);
       return map;
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
       return null;
     }
   }
@@ -474,17 +547,17 @@ class FlutterInsider {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
       args['recommendationID'] = recommendationID;
-      args['productMustMap'] = product.productMustMap;
-      args['productOptMap'] = product.productOptMap;
+      args['requiredFields'] = product.requiredFields;
+      args['optionalFields'] = product.optionalFields;
+      args['customParameters'] = product.customParameters;
       await _channel.invokeMethod(
           Constants.CLICK_SMART_RECOMMENDATION_PRODUCT, args);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
-  Future<List?> getMessageCenterData(
-      DateTime startDate, DateTime endDate, int limit) async {
+  Future<List?> getMessageCenterData(DateTime startDate, DateTime endDate, int limit) async {
     try {
       if (startDate.compareTo(endDate) == 0 || startDate.compareTo(endDate) > 0)
         return List<Map>.filled(0, <String, dynamic>{}, growable: false);
@@ -493,8 +566,7 @@ class FlutterInsider {
       args['startDate'] = startDate.millisecondsSinceEpoch;
       args['endDate'] = endDate.millisecondsSinceEpoch;
       args['limit'] = limit;
-      List? list =
-          await _channel.invokeMethod(Constants.GET_MESSAGE_CENTER_DATA, args);
+      List? list = await _channel.invokeMethod(Constants.GET_MESSAGE_CENTER_DATA, args);
       return list;
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
@@ -502,9 +574,31 @@ class FlutterInsider {
     }
   }
 
-  Future<void> signUpConfirmation() async {
+  Future<List?> getMessageCenterDataWithIdentifiers(DateTime startDate, DateTime endDate, FlutterInsiderIdentifiers identifiers, int limit) async {
     try {
-      await _channel.invokeMethod(Constants.SIGN_UP_CONFIRMATION);
+      if (startDate.compareTo(endDate) == 0 || startDate.compareTo(endDate) > 0)
+        return List<Map>.filled(0, <String, dynamic>{}, growable: false);
+
+      Map<String, dynamic> args = <String, dynamic>{};
+      args['startDate'] = startDate.millisecondsSinceEpoch;
+      args['endDate'] = endDate.millisecondsSinceEpoch;
+      args['identifiers'] = identifiers.getIdentifiers();
+      args['limit'] = limit;
+      List? list = await _channel.invokeMethod(Constants.GET_MESSAGE_CENTER_DATA_WITH_IDENTIFIERS, args);
+      return list;
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+      return null;
+    }
+  }
+
+  Future<void> signUpConfirmation({Map<String, Object>? customParameters}) async {
+    try {
+      Map<String, dynamic> args = <String, dynamic>{};
+      if (customParameters != null) {
+        args[Constants.CUSTOM_PARAMETERS] = FlutterInsiderUtils.serializeCustomParameters(customParameters);
+      }
+      await _channel.invokeMethod(Constants.SIGN_UP_CONFIRMATION, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -590,6 +684,16 @@ class FlutterInsider {
       Map<String, dynamic> args = <String, dynamic>{};
       args['universalLink'] = url;
       _channel.invokeMethod(Constants.HANDLE_UNIVERSAL_LINK, args);
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+  }
+
+  Future<void> setInternalBrowserCloseButtonPosition(String position) async {
+    try {
+      Map<String, dynamic> args = <String, dynamic>{};
+      args["position"] = position;
+      await _channel.invokeMethod(Constants.SET_INTERNAL_BROWSER_CLOSE_BUTTON_POSITION, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }

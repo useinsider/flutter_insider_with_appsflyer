@@ -1,5 +1,6 @@
 #import "FlutterInsiderPlugin.h"
 #import "InsiderIDStreamHandler.h"
+#import "FlutterInsiderUtils.h"
 #import <InsiderHybrid/InsiderHybridMethods.h>
 #import <InsiderHybrid/InsiderHybrid.h>
 #import <InsiderMobile/Insider.h>
@@ -29,6 +30,31 @@ FlutterEventSink mEventSink;
     [insiderIDListenerChannel setStreamHandler:insiderIdStreamHandler];
 }
 
+- (NSDictionary *)convertCustomParameters:(NSArray *)params {
+    if (!params) return nil;
+    NSMutableDictionary *converted = [NSMutableDictionary dictionary];
+    for (id item in params) {
+        if (![item isKindOfClass:[NSDictionary class]]) continue;
+        NSDictionary *parameter = (NSDictionary *)item;
+        NSString *type = parameter[@"type"];
+        NSString *key  = parameter[@"key"];
+        if (![type isKindOfClass:[NSString class]] || ![key isKindOfClass:[NSString class]]) continue;
+        id value = parameter[@"value"];
+        if ([type isEqualToString:@"string"] && [value isKindOfClass:[NSString class]]) {
+            converted[key] = value;
+        } else if (([type isEqualToString:@"integer"] || [type isEqualToString:@"double"] || [type isEqualToString:@"boolean"]) && [value isKindOfClass:[NSNumber class]]) {
+            converted[key] = value;
+        } else if ([type isEqualToString:@"date"] && [value isKindOfClass:[NSNumber class]]) {
+            long long epochMillis = [(NSNumber *)value longLongValue];
+            NSDate *dateValue = [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)epochMillis / 1000.0];
+            converted[key] = dateValue;
+        } else if (([type isEqualToString:@"string_array"] || [type isEqualToString:@"numeric_array"]) && [value isKindOfClass:[NSArray class]]) {
+            converted[key] = value;
+        }
+    }
+    return converted;
+}
+
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
     if ([call.method isEqualToString:INIT_WITH_LAUNCH_OPTIONS]) {
         [self initWithLaunchOptions:call withResult:result];
@@ -40,7 +66,7 @@ FlutterEventSink mEventSink;
         [self setAllowsBackgroundLocationUpdates:call];
     } else if ([call.method isEqualToString:REGISTER_WITH_QUIET_PERMISSION]) {
         [self registerWithQuietPermission:call];
-    } else if ([call.method isEqualToString:HANDLE_NOTIFICATION]) {
+    } else if ([call.method isEqualToString:HANDLE_NOTIFICATION] || [call.method isEqualToString:@"triggerPushProcessWithNotificationData"]) {
         [self handleNotification:call];
     } else if ([call.method isEqualToString:SET_GDPR_CONSENT]) {
         [self setGDPRConsent:call];
@@ -96,6 +122,8 @@ FlutterEventSink mEventSink;
         [self clickSmartRecommendationProduct:call];
     } else if ([call.method isEqualToString:GET_MESSAGE_CENTER_DATA]) {
         [self getMessageCenter:call withResult:result];
+    } else if ([call.method isEqualToString:@"getMessageCenterDataWithIdentifiers"]) {
+        [self getMessageCenterWithIdentifiers:call withResult:result];
     } else if ([call.method isEqualToString:SET_GENDER]) {
         [self setGender:call];
     } else if ([call.method isEqualToString:SET_BIRTHDAY]) {
@@ -178,6 +206,8 @@ FlutterEventSink mEventSink;
         [self wishlistCleared:call];
     } else if ([call.method isEqualToString:@"handleUniversalLink"]) {
         [self handleUniversalLink:call];
+    } else if ([call.method isEqualToString:@"setInternalBrowserCloseButtonPosition"]) {
+        result(nil);
     } else {
         result(FlutterMethodNotImplemented);
     }
@@ -383,7 +413,11 @@ FlutterEventSink mEventSink;
 
 - (void)visitHomePage:(FlutterMethodCall *)call {
     @try {
-        [Insider visitHomepage];
+        if (call.arguments[@"customParameters"]) {
+            [Insider visitHomepageWithCustomParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider visitHomepage];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -392,7 +426,11 @@ FlutterEventSink mEventSink;
 - (void)visitListingPage:(FlutterMethodCall *)call {
     @try {
         if (!call.arguments[@"taxonomy"]) return;
-        [Insider visitListingPageWithTaxonomy:call.arguments[@"taxonomy"]];
+        if (call.arguments[@"customParameters"]) {
+            [Insider visitListingPageWithTaxonomy:call.arguments[@"taxonomy"] customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider visitListingPageWithTaxonomy:call.arguments[@"taxonomy"]];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -400,9 +438,16 @@ FlutterEventSink mEventSink;
 
 - (void)visitProductDetailPage:(FlutterMethodCall *)call {
     @try {
-        if (!call.arguments[PRODUCT_MUST_MAP] || !call.arguments[PRODUCT_OPT_MAP]) return;
-        InsiderProduct *product = (InsiderProduct *)[InsiderHybrid createProduct:call.arguments[PRODUCT_MUST_MAP] productOptMap:call.arguments[PRODUCT_OPT_MAP]];
-        [Insider visitProductDetailPageWithProduct:product];
+        if (!call.arguments[@"requiredFields"] || !call.arguments[@"optionalFields"] || !call.arguments[@"productCustomParameters"]) return;
+        NSDictionary *requiredFields = call.arguments[@"requiredFields"];
+        NSDictionary *optionalFields = call.arguments[@"optionalFields"];
+        NSArray *productCustomParameters = call.arguments[@"productCustomParameters"];
+        InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
+        if (call.arguments[@"customParameters"]) {
+            [Insider visitProductDetailPageWithProduct:product customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider visitProductDetailPageWithProduct:product];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -411,7 +456,23 @@ FlutterEventSink mEventSink;
 - (void)visitCartPage:(FlutterMethodCall *)call {
     @try {
         if (!call.arguments[@"products"]) return;
-        [InsiderHybrid visitCartPage:call.arguments[@"products"]];
+        NSArray *productsList = call.arguments[@"products"];
+        NSMutableArray *cartProducts = [NSMutableArray arrayWithCapacity:productsList.count];
+        for (NSDictionary *productMap in productsList) {
+            NSDictionary *requiredFields = productMap[@"requiredFields"];
+            NSDictionary *optionalFields = productMap[@"optionalFields"];
+            NSArray *productCustomParameters = productMap[@"productCustomParameters"];
+            InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
+            [cartProducts addObject:product];
+        }
+        NSString *saleID = call.arguments[@"saleID"];
+        if (saleID.length > 0) {
+            [Insider visitCartPageWithProducts:cartProducts saleID:saleID customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else if (call.arguments[@"customParameters"]) {
+            [Insider visitCartPageWithProducts:cartProducts customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider visitCartPageWithProducts:cartProducts];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -419,9 +480,16 @@ FlutterEventSink mEventSink;
 
 - (void)itemPurchased:(FlutterMethodCall *)call {
     @try {
-        if (!call.arguments[@"uniqueSaleID"] || !call.arguments[PRODUCT_MUST_MAP] || !call.arguments[PRODUCT_OPT_MAP]) return;
-        InsiderProduct *product = (InsiderProduct *)[InsiderHybrid createProduct:call.arguments[PRODUCT_MUST_MAP] productOptMap:call.arguments[PRODUCT_OPT_MAP]];
-        [Insider itemPurchasedWithSaleID:call.arguments[@"uniqueSaleID"] product:product];
+        if (!call.arguments[@"uniqueSaleID"] || !call.arguments[@"requiredFields"] || !call.arguments[@"optionalFields"] || !call.arguments[@"productCustomParameters"]) return;
+        NSDictionary *requiredFields = call.arguments[@"requiredFields"];
+        NSDictionary *optionalFields = call.arguments[@"optionalFields"];
+        NSArray *productCustomParameters = call.arguments[@"productCustomParameters"];
+        InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
+        if (call.arguments[@"customParameters"]) {
+            [Insider itemPurchasedWithSaleID:call.arguments[@"uniqueSaleID"] product:product customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider itemPurchasedWithSaleID:call.arguments[@"uniqueSaleID"] product:product];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -429,9 +497,16 @@ FlutterEventSink mEventSink;
 
 - (void)itemAddedToCart:(FlutterMethodCall *)call {
     @try {
-        if (!call.arguments[PRODUCT_MUST_MAP] || !call.arguments[PRODUCT_OPT_MAP]) return;
-        InsiderProduct *product = (InsiderProduct *)[InsiderHybrid createProduct:call.arguments[PRODUCT_MUST_MAP] productOptMap:call.arguments[PRODUCT_OPT_MAP]];
-        [Insider itemAddedToCartWithProduct:product];
+        if (!call.arguments[@"requiredFields"] || !call.arguments[@"optionalFields"] || !call.arguments[@"productCustomParameters"]) return;
+        NSDictionary *requiredFields = call.arguments[@"requiredFields"];
+        NSDictionary *optionalFields = call.arguments[@"optionalFields"];
+        NSArray *productCustomParameters = call.arguments[@"productCustomParameters"];
+        InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
+        if (call.arguments[@"customParameters"]) {
+            [Insider itemAddedToCartWithProduct:product customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider itemAddedToCartWithProduct:product];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -440,7 +515,14 @@ FlutterEventSink mEventSink;
 - (void)itemRemovedFromCart:(FlutterMethodCall *)call {
     @try {
         if (!call.arguments[@"productID"]) return;
-        [Insider itemRemovedFromCartWithProductID:call.arguments[@"productID"]];
+        NSString *saleID = call.arguments[@"saleID"];
+        if (saleID.length > 0) {
+            [Insider itemRemovedFromCartWithProductID:call.arguments[@"productID"] saleID:saleID customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else if (call.arguments[@"customParameters"]) {
+            [Insider itemRemovedFromCartWithProductID:call.arguments[@"productID"] customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider itemRemovedFromCartWithProductID:call.arguments[@"productID"]];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -448,7 +530,11 @@ FlutterEventSink mEventSink;
 
 - (void)cartCleared:(FlutterMethodCall *)call {
     @try {
-        [Insider cartCleared];
+        if (call.arguments[@"customParameters"]) {
+            [Insider cartClearedWithCustomParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider cartCleared];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -457,8 +543,20 @@ FlutterEventSink mEventSink;
 - (void)visitWishlistPage:(FlutterMethodCall *)call {
     @try {
         if (!call.arguments[@"products"]) return;
-
-        [Insider visitWishlistWithProducts:[InsiderHybrid convertArrayToInsiderProductArray:call.arguments[@"products"]]];
+        NSArray *productsList = call.arguments[@"products"];
+        NSMutableArray *wishlistProducts = [NSMutableArray arrayWithCapacity:productsList.count];
+        for (NSDictionary *productMap in productsList) {
+            NSDictionary *requiredFields = productMap[@"requiredFields"];
+            NSDictionary *optionalFields = productMap[@"optionalFields"];
+            NSArray *productCustomParameters = productMap[@"productCustomParameters"];
+            InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
+            [wishlistProducts addObject:product];
+        }
+        if (call.arguments[@"customParameters"]) {
+            [Insider visitWishlistWithProducts:wishlistProducts customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider visitWishlistWithProducts:wishlistProducts];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -466,10 +564,16 @@ FlutterEventSink mEventSink;
 
 - (void)itemAddedToWishlist:(FlutterMethodCall *)call {
     @try {
-        if (!call.arguments[PRODUCT_MUST_MAP] || !call.arguments[PRODUCT_OPT_MAP]) return;
-        InsiderProduct *product = (InsiderProduct *)[InsiderHybrid createProduct:call.arguments[PRODUCT_MUST_MAP] productOptMap:call.arguments[PRODUCT_OPT_MAP]];
-
-        [Insider itemAddedToWishlistWithProduct:product];
+        if (!call.arguments[@"requiredFields"] || !call.arguments[@"optionalFields"] || !call.arguments[@"productCustomParameters"]) return;
+        NSDictionary *requiredFields = call.arguments[@"requiredFields"];
+        NSDictionary *optionalFields = call.arguments[@"optionalFields"];
+        NSArray *productCustomParameters = call.arguments[@"productCustomParameters"];
+        InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
+        if (call.arguments[@"customParameters"]) {
+            [Insider itemAddedToWishlistWithProduct:product customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider itemAddedToWishlistWithProduct:product];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -479,7 +583,11 @@ FlutterEventSink mEventSink;
     @try {
         if (!call.arguments[@"productID"]) return;
 
-        [Insider itemRemovedFromWishlistWithProductID:call.arguments[@"productID"]];
+        if (call.arguments[@"customParameters"]) {
+            [Insider itemRemovedFromWishlistWithProductID:call.arguments[@"productID"] customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider itemRemovedFromWishlistWithProductID:call.arguments[@"productID"]];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -487,7 +595,11 @@ FlutterEventSink mEventSink;
 
 - (void)wishlistCleared:(FlutterMethodCall *)call {
     @try {
-        [Insider wishlistCleared];
+        if (call.arguments[@"customParameters"]) {
+            [Insider wishlistClearedWithCustomParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider wishlistCleared];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -506,8 +618,11 @@ FlutterEventSink mEventSink;
 
 - (void)getSmartRecommendationWithProduct:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
-        if (!call.arguments[@"recommendationID"] || !call.arguments[@"locale"] || !call.arguments[@"productMustMap"] || !call.arguments[@"productOptMap"]) return;
-        InsiderProduct *product = (InsiderProduct *)[InsiderHybrid createProduct:call.arguments[@"productMustMap"] productOptMap:call.arguments[@"productOptMap"]];
+        if (!call.arguments[@"recommendationID"] || !call.arguments[@"locale"] || !call.arguments[@"requiredFields"] || !call.arguments[@"optionalFields"] || !call.arguments[@"customParameters"]) return;
+        NSDictionary *requiredFields = call.arguments[@"requiredFields"];
+        NSDictionary *optionalFields = call.arguments[@"optionalFields"];
+        NSArray *customParameters = call.arguments[@"customParameters"];
+        InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:customParameters];
         [Insider getSmartRecommendationWithProduct:product recommendationID:[call.arguments[@"recommendationID"] intValue] locale:call.arguments[@"locale"] smartRecommendation:^(NSDictionary *recommendation) {
             result(recommendation);
         }];
@@ -530,8 +645,11 @@ FlutterEventSink mEventSink;
 
 - (void)clickSmartRecommendationProduct:(FlutterMethodCall *)call {
     @try {
-        if (!call.arguments[@"recommendationID"] || !call.arguments[@"productMustMap"] || !call.arguments[@"productOptMap"]) return;
-        InsiderProduct *product = (InsiderProduct *)[InsiderHybrid createProduct:call.arguments[@"productMustMap"] productOptMap:call.arguments[@"productOptMap"]];
+        if (!call.arguments[@"recommendationID"] || !call.arguments[@"requiredFields"] || !call.arguments[@"optionalFields"] || !call.arguments[@"customParameters"]) return;
+        NSDictionary *requiredFields = call.arguments[@"requiredFields"];
+        NSDictionary *optionalFields = call.arguments[@"optionalFields"];
+        NSArray *customParameters = call.arguments[@"customParameters"];
+        InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:customParameters];
         [Insider clickSmartRecommendationProductWithID:[call.arguments[@"recommendationID"] intValue] product:product];
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
@@ -540,7 +658,10 @@ FlutterEventSink mEventSink;
 
 - (void)getMessageCenter:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
-        if (!call.arguments[@"startDate"] || !call.arguments[@"endDate"] || !call.arguments[@"limit"]) return;
+        if (!call.arguments[@"startDate"] || !call.arguments[@"endDate"] || !call.arguments[@"limit"]) {
+            result([FlutterError errorWithCode:@"MESSAGE_CENTER_LOG" message:@"Missing arguments" details:nil]);
+            return;
+        }
         [InsiderHybrid getMessageCenterDataWithLimit:[call.arguments[@"limit"] integerValue]
                                            startDate:[call.arguments[@"startDate"] integerValue]
                                              endDate:[call.arguments[@"endDate"] integerValue]
@@ -551,12 +672,34 @@ FlutterEventSink mEventSink;
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
 }
+
+- (void)getMessageCenterWithIdentifiers:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        if (!call.arguments[@"startDate"] || !call.arguments[@"endDate"] || !call.arguments[@"limit"] || !call.arguments[@"identifiers"]) {
+            result([FlutterError errorWithCode:@"MESSAGE_CENTER_LOG" message:@"Missing arguments" details:nil]);
+            return;
+        }
+        NSDate *startDate = [NSDate dateWithTimeIntervalSince1970:[call.arguments[@"startDate"] doubleValue] / 1000.0];
+        NSDate *endDate = [NSDate dateWithTimeIntervalSince1970:[call.arguments[@"endDate"] doubleValue] / 1000.0];
+        InsiderIdentifiers *identifiers = [self buildInsiderIdentifiersFromMap:call.arguments[@"identifiers"]];
+        [Insider getMessageCenterDataWithLimit:[call.arguments[@"limit"] integerValue]
+                                     startDate:startDate
+                                       endDate:endDate
+                                   identifiers:identifiers
+                                       success:^(NSArray *messageCenterData) {
+                                           result(messageCenterData);
+                                       }];
+    } @catch (NSException *e) {
+        [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
+    }
+}
+
 - (void)tagEvent:(FlutterMethodCall *)call {
     @try {
         if (!call.arguments[@"name"] || !call.arguments[@"parameters"]) return;
-        InsiderEvent *event = [Insider tagEvent:call.arguments[@"name"]];
-        event.addParameters(call.arguments[@"parameters"]);
-        [event build];
+        NSString *eventName = call.arguments[@"name"];
+        NSArray *parameters = call.arguments[@"parameters"];
+        [[FlutterInsiderUtils parseEventFromEventName:eventName andParameters:parameters] build];
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -574,7 +717,11 @@ FlutterEventSink mEventSink;
 - (void)setBirthday:(FlutterMethodCall *)call {
     @try {
         if (!call.arguments[@"value"]) return;
-        [InsiderHybrid setBirthday:call.arguments[@"value"]];
+        NSString *epochString = [call.arguments[@"value"] description];
+        long long epochMillis = epochString.longLongValue;
+        NSTimeInterval epochSeconds = ((NSTimeInterval)epochMillis) / 1000.0;
+        NSDate *dateValue = [NSDate dateWithTimeIntervalSince1970:epochSeconds];
+        [Insider getCurrentUser].setBirthday(dateValue);
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -736,7 +883,12 @@ FlutterEventSink mEventSink;
 - (void)setCustomAttributeWithDate:(FlutterMethodCall *)call{
     @try {
         if (!call.arguments[@"key"] || !call.arguments[@"value"]) return;
-        [InsiderHybrid setCustomAttributeWithDate:call.arguments[@"key"] value:call.arguments[@"value"]];
+        NSString *key = call.arguments[@"key"];
+        NSString *value = [call.arguments[@"value"] description];
+        long long epochMillis = value.longLongValue;
+        NSTimeInterval epochSeconds = ((NSTimeInterval)epochMillis) / 1000.0;
+        NSDate *dateValue = [NSDate dateWithTimeIntervalSince1970:epochSeconds];
+        [Insider getCurrentUser].setCustomAttributeWithDate(key, dateValue);
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -760,22 +912,26 @@ FlutterEventSink mEventSink;
     }
 }
 
+- (InsiderIdentifiers *)buildInsiderIdentifiersFromMap:(NSDictionary *)identifiersMap {
+    InsiderIdentifiers *identifiers = [[InsiderIdentifiers alloc] init];
+    for (NSString *key in identifiersMap.allKeys) {
+        if ([key isEqualToString:ADD_EMAIL]) {
+            identifiers.addEmail([identifiersMap objectForKey:key]);
+        } else if ([key isEqualToString:ADD_PHONE_NUMBER]) {
+            identifiers.addPhoneNumber([identifiersMap objectForKey:key]);
+        } else if ([key isEqualToString:ADD_USER_ID]) {
+            identifiers.addUserID([identifiersMap objectForKey:key]);
+        } else {
+            identifiers.addCustomIdentifier(key, [identifiersMap objectForKey:key]);
+        }
+    }
+    return identifiers;
+}
+
 - (void)login:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         if (!call.arguments[@"identifiers"]) return;
-        NSMutableDictionary *identifiers  = call.arguments[@"identifiers"];
-        InsiderIdentifiers *insiderIdentifiers = [[InsiderIdentifiers alloc] init];
-        for (NSString *key in identifiers.allKeys){
-            if([key isEqualToString:ADD_EMAIL]){
-                insiderIdentifiers.addEmail([identifiers objectForKey:key]);
-            } else if([key isEqualToString:ADD_PHONE_NUMBER]){
-                insiderIdentifiers.addPhoneNumber([identifiers objectForKey:key]);
-            } else if([key isEqualToString:ADD_USER_ID]){
-                insiderIdentifiers.addUserID([identifiers objectForKey:key]);
-            } else {
-                insiderIdentifiers.addCustomIdentifier(key, [identifiers objectForKey:key]);
-            }
-        }
+        InsiderIdentifiers *insiderIdentifiers = [self buildInsiderIdentifiersFromMap:call.arguments[@"identifiers"]];
 
         if (call.arguments[@"insiderID"]) {
             [[Insider getCurrentUser] login:insiderIdentifiers insiderIDResult:^(NSString *insiderID) {
@@ -808,19 +964,7 @@ FlutterEventSink mEventSink;
             if (identifiersList && identifiersList.count > 0) {
                 NSMutableArray<InsiderIdentifiers *> *identifiersArray = [NSMutableArray array];
                 for (NSDictionary *identifiersMap in identifiersList) {
-                    InsiderIdentifiers *insiderIdentifiers = [[InsiderIdentifiers alloc] init];
-                    for (NSString *key in identifiersMap.allKeys) {
-                        if([key isEqualToString:ADD_EMAIL]) {
-                            insiderIdentifiers.addEmail([identifiersMap objectForKey:key]);
-                        } else if([key isEqualToString:ADD_PHONE_NUMBER]) {
-                            insiderIdentifiers.addPhoneNumber([identifiersMap objectForKey:key]);
-                        } else if([key isEqualToString:ADD_USER_ID]) {
-                            insiderIdentifiers.addUserID([identifiersMap objectForKey:key]);
-                        } else {
-                            insiderIdentifiers.addCustomIdentifier(key, [identifiersMap objectForKey:key]);
-                        }
-                    }
-                    [identifiersArray addObject:insiderIdentifiers];
+                    [identifiersArray addObject:[self buildInsiderIdentifiersFromMap:identifiersMap]];
                 }
                 additionalIdentifiers = identifiersArray;
             }
@@ -881,7 +1025,11 @@ FlutterEventSink mEventSink;
 
 -(void)signUpConfirmation:(FlutterMethodCall *)call {
     @try {
-        [Insider signUpConfirmation];
+        if (call.arguments[@"customParameters"]) {
+            [Insider signUpConfirmationWithCustomParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+        } else {
+            [Insider signUpConfirmation];
+        }
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }

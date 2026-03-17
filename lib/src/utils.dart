@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'constants.dart';
 
 class FlutterInsiderUtils {
   static Future<void> putException(MethodChannel methodChannel,
@@ -60,5 +61,29 @@ class FlutterInsiderUtils {
       print("[ERROR] Exception in validateNumericArray: $e\n$stack");
       return null;
     }
+  }
+
+  static List<Map<String, Object>> serializeCustomParameters(Map<String, Object> params) {
+    List<Map<String, Object>> result = [];
+    params.forEach((key, value) {
+      if (value is bool) {
+        result.add({'type': 'boolean', 'key': key, 'value': value});
+      } else if (value is int) {
+        result.add({'type': 'integer', 'key': key, 'value': value});
+      } else if (value is double) {
+        result.add({'type': 'double', 'key': key, 'value': value});
+      } else if (value is String) {
+        result.add({'type': 'string', 'key': key, 'value': value});
+      } else if (value is DateTime) {
+        result.add({'type': 'date', 'key': key, 'value': value.millisecondsSinceEpoch});
+      } else if (value is List) {
+        if (value.isNotEmpty && value.every((e) => e is String)) {
+          result.add({'type': 'string_array', 'key': key, 'value': value});
+        } else if (value.isNotEmpty && value.every((e) => e is num)) {
+          result.add({'type': 'numeric_array', 'key': key, 'value': value});
+        }
+      }
+    });
+    return result;
   }
 }

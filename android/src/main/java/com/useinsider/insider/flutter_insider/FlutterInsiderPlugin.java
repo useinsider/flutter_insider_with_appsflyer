@@ -24,13 +24,17 @@ import com.useinsider.insider.RecommendationEngine;
 import com.useinsider.insiderhybrid.InsiderHybrid;
 import com.useinsider.insiderhybrid.InsiderHybridUtils;
 import com.useinsider.insiderhybrid.constants.InsiderHybridMethods;
+import com.useinsider.insider.CloseButtonPosition;
 import com.useinsider.insider.InsiderIDListener;
+import com.useinsider.insider.flutter_insider.FlutterInsiderUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
@@ -62,6 +66,48 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
     private InsiderIDListener insiderIDListener;
 
     private boolean isCoreInited = false;
+
+    private Map<String, Object> convertCustomParameters(ArrayList<Map<String, Object>> params) {
+        if (params == null) return null;
+        Map<String, Object> converted = new HashMap<>();
+        for (Map<String, Object> entry : params) {
+            String key = (String) entry.get("key");
+            String type = (String) entry.get("type");
+            Object value = entry.get("value");
+            if (key == null || type == null || value == null) continue;
+            switch (type) {
+                case "string":
+                    converted.put(key, value.toString());
+                    break;
+                case "integer":
+                    converted.put(key, ((Number) value).intValue());
+                    break;
+                case "double":
+                    converted.put(key, ((Number) value).doubleValue());
+                    break;
+                case "boolean":
+                    converted.put(key, value);
+                    break;
+                case "date":
+                    converted.put(key, new Date(((Number) value).longValue()));
+                    break;
+                case "string_array":
+                    if (value instanceof ArrayList) {
+                        converted.put(key, ((ArrayList<String>) value).toArray(new String[0]));
+                    }
+                    break;
+                case "numeric_array":
+                    if (value instanceof ArrayList) {
+                        converted.put(key, ((ArrayList<?>) value).toArray(new Number[0]));
+                    }
+                    break;
+                default:
+                    converted.put(key, value);
+                    break;
+            }
+        }
+        return converted;
+    }
 
     @Override
     public void onAttachedToEngine(FlutterPluginBinding binding) {
@@ -212,6 +258,14 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                         }
                     }.execute();
                     break;
+                case "triggerPushProcessWithNotificationData":
+                    if (!call.hasArgument("notification")) {
+                        return;
+                    }
+
+                    Map<String, String> triggerNotificationData = call.argument("notification");
+                    Insider.Instance.triggerPushProcessWithNotificationData(context, triggerNotificationData);
+                    break;
                 case InsiderHybridMethods.START_TRACKING_GEOFENCE:
                     Insider.Instance.startTrackingGeofence();
                     break;
@@ -244,6 +298,30 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     if (!call.hasArgument("enableLocationCollection"))
                         return;
                     Insider.Instance.enableLocationCollection((boolean) call.argument("enableLocationCollection"));
+                    break;
+                case "setInternalBrowserCloseButtonPosition":
+                    try {
+                        if (!call.hasArgument("position"))
+                            return;
+                        String positionStr = call.argument("position");
+                        if (positionStr == null)
+                            return;
+                        CloseButtonPosition closeButtonPosition;
+                        switch (positionStr) {
+                            case "LEFT":
+                                closeButtonPosition = CloseButtonPosition.LEFT;
+                                break;
+                            case "NONE":
+                                closeButtonPosition = CloseButtonPosition.NONE;
+                                break;
+                            default:
+                                closeButtonPosition = CloseButtonPosition.RIGHT;
+                                break;
+                        }
+                        Insider.Instance.setInternalBrowserCloseButtonPosition(closeButtonPosition);
+                    } catch (Exception e) {
+                        Insider.Instance.putException(e);
+                    }
                     break;
                 case InsiderHybridMethods.GET_CONTENT_STRING_WITH_NAME:
                     if (!isContentOptimizerCallValid(call)) {
@@ -286,15 +364,16 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     break;
                 case InsiderHybridMethods.GET_SMART_RECOMMENDATION_WITH_PRODUCT:
                     if (!call.hasArgument(Constants.RECOMMENDATION_ID) || !call.hasArgument(Constants.LOCALE)
-                            || !call.hasArgument(InsiderHybridMethods.PRODUCT_MUST_MAP)
-                            || !call.hasArgument(InsiderHybridMethods.PRODUCT_OPT_MAP)) {
+                            || !call.hasArgument("requiredFields")
+                            || !call.hasArgument("optionalFields") || !call.hasArgument("customParameters")) {
                         result.error(Constants.RECOMMENDATION_LOG, "Missing arguments", null);
                         return;
                     }
-                    InsiderProduct product = InsiderHybrid.createProduct(
-                            (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_MUST_MAP),
-                            (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_OPT_MAP));
-                    Insider.Instance.getSmartRecommendationWithProduct(product,
+                    Map<String, Object> recRequiredFields = (Map<String, Object>) call.argument("requiredFields");
+                    Map<String, Object> recOptionalFields = (Map<String, Object>) call.argument("optionalFields");
+                    List<Map<String, Object>> recCustomParameters = (List<Map<String, Object>>) call.argument("customParameters");
+                    InsiderProduct recProduct = FlutterInsiderUtils.parseProduct(recRequiredFields, recOptionalFields, recCustomParameters);
+                    Insider.Instance.getSmartRecommendationWithProduct(recProduct,
                             (int) call.argument(Constants.RECOMMENDATION_ID),
                             call.argument(Constants.LOCALE).toString(), getRecommendationCallback(result));
                     break;
@@ -314,15 +393,16 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     break;
                 case InsiderHybridMethods.CLICK_SMART_RECOMMENDATION_PRODUCT:
                     if (!call.hasArgument(Constants.RECOMMENDATION_ID) ||
-                            !call.hasArgument(InsiderHybridMethods.PRODUCT_MUST_MAP) ||
-                            !call.hasArgument(InsiderHybridMethods.PRODUCT_OPT_MAP)
+                            !call.hasArgument("requiredFields") ||
+                            !call.hasArgument("optionalFields") || !call.hasArgument("customParameters")
                     ) {
                         return;
                     }
-                    InsiderProduct recommendationLogProduct = InsiderHybrid.createProduct(
-                            (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_MUST_MAP),
-                            (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_OPT_MAP));
-                    Insider.Instance.clickSmartRecommendationProduct((int) call.argument(Constants.RECOMMENDATION_ID), recommendationLogProduct);
+                    Map<String, Object> clickRecRequiredFields = (Map<String, Object>) call.argument("requiredFields");
+                    Map<String, Object> clickRecOptionalFields = (Map<String, Object>) call.argument("optionalFields");
+                    List<Map<String, Object>> clickRecCustomParameters = (List<Map<String, Object>>) call.argument("customParameters");
+                    InsiderProduct clickRecProduct = FlutterInsiderUtils.parseProduct(clickRecRequiredFields, clickRecOptionalFields, clickRecCustomParameters);
+                    Insider.Instance.clickSmartRecommendationProduct((int) call.argument(Constants.RECOMMENDATION_ID), clickRecProduct);
                     break;
                 case InsiderHybridMethods.GET_MESSAGE_CENTER_DATA:
                     if (!call.hasArgument(Constants.START_DATE) || !call.hasArgument(Constants.END_DATE)
@@ -333,6 +413,19 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     InsiderHybrid.getMessageCenterData((int) call.argument(Constants.LIMIT),
                             (long) call.argument(Constants.START_DATE),
                             (long) call.argument(Constants.END_DATE), getMessageCenterCallback(result));
+                    break;
+                case "getMessageCenterDataWithIdentifiers":
+                    if (!call.hasArgument(Constants.START_DATE) || !call.hasArgument(Constants.END_DATE)
+                            || !call.hasArgument(Constants.LIMIT) || !call.hasArgument("identifiers")) {
+                        result.error(Constants.MESSAGE_CENTER_LOG, "Missing arguments", null);
+                        return;
+                    }
+                    Insider.Instance.getMessageCenterData(
+                            (int) call.argument(Constants.LIMIT),
+                            new Date((long) call.argument(Constants.START_DATE)),
+                            new Date((long) call.argument(Constants.END_DATE)),
+                            buildInsiderIdentifiers(call.argument("identifiers")),
+                            getMessageCenterCallback(result));
                     break;
                 case InsiderHybridMethods.REMOVE_INAPP:
                     Insider.Instance.removeInapp(activity);
@@ -357,7 +450,9 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                 case InsiderHybridMethods.SET_BIRTHDAY:
                     if (!call.hasArgument(Constants.VALUE))
                         return;
-                    InsiderHybrid.setBirthday(call.argument(Constants.VALUE).toString());
+                    long birthdayEpoch = Long.parseLong(call.argument(Constants.VALUE).toString());
+                    Date birthdayDate = new Date(birthdayEpoch);
+                    Insider.Instance.getCurrentUser().setBirthday(birthdayDate);
                     break;
                 case InsiderHybridMethods.SET_NAME:
                     if (!call.hasArgument(Constants.VALUE))
@@ -458,8 +553,11 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                 case InsiderHybridMethods.SET_CUSTOM_ATTRIBUTE_WITH_DATE:
                     if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.VALUE))
                         return;
-                    InsiderHybrid.setCustomAttributeWithDate(call.argument(Constants.KEY).toString(),
-                            call.argument(Constants.VALUE).toString());
+                    // Flutter: epoch milliseconds as String
+                    String customKey = call.argument(Constants.KEY).toString();
+                    long valueEpoch = Long.parseLong(call.argument(Constants.VALUE).toString());
+                    Date valueDate = new Date(valueEpoch);
+                    Insider.Instance.getCurrentUser().setCustomAttributeWithDate(customKey, valueDate);
                     break;
                 case InsiderHybridMethods.SET_CUSTOM_ATTRIBUTE_WITH_ARRAY:
                     if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.VALUE))
@@ -477,24 +575,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     if (!call.hasArgument("identifiers")) {
                         return;
                     }
-                    Map<String, Object> identifiers = call.argument("identifiers");
-                    InsiderIdentifiers insiderIdentifiers = new InsiderIdentifiers();
-                    for (String key : identifiers.keySet()) {
-                        switch (key) {
-                            case InsiderHybridMethods.ADD_EMAIL:
-                                insiderIdentifiers.addEmail(String.valueOf(identifiers.get(key)));
-                                break;
-                            case InsiderHybridMethods.ADD_PHONE_NUMBER:
-                                insiderIdentifiers.addPhoneNumber(String.valueOf(identifiers.get(key)));
-                                break;
-                            case InsiderHybridMethods.ADD_USER_ID:
-                                insiderIdentifiers.addUserID(String.valueOf(identifiers.get(key)));
-                                break;
-                            default:
-                                insiderIdentifiers.addCustomIdentifier(key, String.valueOf(identifiers.get(key)));
-                                break;
-                        }
-                    }
+                    InsiderIdentifiers insiderIdentifiers = buildInsiderIdentifiers(call.argument("identifiers"));
 
                     if (call.hasArgument("insiderID")) {
                         Insider.Instance.getCurrentUser().login(insiderIdentifiers, new InsiderUser.InsiderIDResult() {
@@ -529,25 +610,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                         if (logoutIdentifiersList != null && !logoutIdentifiersList.isEmpty()) {
                             logoutIdentifiersArray = new InsiderIdentifiers[logoutIdentifiersList.size()];
                             for (int i = 0; i < logoutIdentifiersList.size(); i++) {
-                                Map<String, Object> logoutIdentifiersMap = logoutIdentifiersList.get(i);
-                                InsiderIdentifiers logoutInsiderIdentifiers = new InsiderIdentifiers();
-                                for (String key : logoutIdentifiersMap.keySet()) {
-                                    switch (key) {
-                                        case InsiderHybridMethods.ADD_EMAIL:
-                                            logoutInsiderIdentifiers.addEmail(String.valueOf(logoutIdentifiersMap.get(key)));
-                                            break;
-                                        case InsiderHybridMethods.ADD_PHONE_NUMBER:
-                                            logoutInsiderIdentifiers.addPhoneNumber(String.valueOf(logoutIdentifiersMap.get(key)));
-                                            break;
-                                        case InsiderHybridMethods.ADD_USER_ID:
-                                            logoutInsiderIdentifiers.addUserID(String.valueOf(logoutIdentifiersMap.get(key)));
-                                            break;
-                                        default:
-                                            logoutInsiderIdentifiers.addCustomIdentifier(key, String.valueOf(logoutIdentifiersMap.get(key)));
-                                            break;
-                                    }
-                                }
-                                logoutIdentifiersArray[i] = logoutInsiderIdentifiers;
+                                logoutIdentifiersArray[i] = buildInsiderIdentifiers(logoutIdentifiersList.get(i));
                             }
                         }
                     }
@@ -573,59 +636,118 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     result.success("");
                     break;
                 case InsiderHybridMethods.ITEM_PURCHASED:
-                    if (!call.hasArgument("uniqueSaleID") || !call.hasArgument(InsiderHybridMethods.PRODUCT_MUST_MAP)
-                            || !call.hasArgument(InsiderHybridMethods.PRODUCT_OPT_MAP))
+                    if (!call.hasArgument("uniqueSaleID") || !call.hasArgument("requiredFields")
+                            || !call.hasArgument("optionalFields") || !call.hasArgument("productCustomParameters"))
                         return;
-                    Insider.Instance.itemPurchased(call.argument("uniqueSaleID").toString(),
-                            InsiderHybrid.createProduct(
-                                    (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_MUST_MAP),
-                                    (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_OPT_MAP)));
+                    Map<String, Object> requiredFields = (Map<String, Object>) call.argument("requiredFields");
+                    Map<String, Object> optionalFields = (Map<String, Object>) call.argument("optionalFields");
+                    List<Map<String, Object>> productCustomParameters = (List<Map<String, Object>>) call.argument("productCustomParameters");
+                    InsiderProduct product = FlutterInsiderUtils.parseProduct(requiredFields, optionalFields, productCustomParameters);
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.itemPurchased(call.argument("uniqueSaleID").toString(), product, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.itemPurchased(call.argument("uniqueSaleID").toString(), product);
+                    }
                     break;
                 case InsiderHybridMethods.ITEM_ADDED_TO_CART:
-                    if (!call.hasArgument(InsiderHybridMethods.PRODUCT_MUST_MAP)
-                            || !call.hasArgument(InsiderHybridMethods.PRODUCT_OPT_MAP))
+                    if (!call.hasArgument("requiredFields")
+                            || !call.hasArgument("optionalFields") || !call.hasArgument("productCustomParameters"))
                         return;
-                    Insider.Instance.itemAddedToCart(InsiderHybrid.createProduct(
-                            (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_MUST_MAP),
-                            (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_OPT_MAP)));
+                    Map<String, Object> cartRequiredFields = (Map<String, Object>) call.argument("requiredFields");
+                    Map<String, Object> cartOptionalFields = (Map<String, Object>) call.argument("optionalFields");
+                    List<Map<String, Object>> cartCustomParameters = (List<Map<String, Object>>) call.argument("productCustomParameters");
+                    InsiderProduct cartProduct = FlutterInsiderUtils.parseProduct(cartRequiredFields, cartOptionalFields, cartCustomParameters);
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.itemAddedToCart(cartProduct, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.itemAddedToCart(cartProduct);
+                    }
                     break;
                 case InsiderHybridMethods.ITEM_REMOVED_FROM_CART:
                     if (!call.hasArgument("productID"))
                         return;
-                    Insider.Instance.itemRemovedFromCart(call.argument("productID").toString());
+                    if (call.hasArgument("saleID")) {
+                        String removeSaleID = (String) call.argument("saleID");
+                        if (call.hasArgument("customParameters")) {
+                            Insider.Instance.itemRemovedFromCart(call.argument("productID").toString(), removeSaleID, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        } else {
+                            Insider.Instance.itemRemovedFromCart(call.argument("productID").toString(), removeSaleID);
+                        }
+                    } else if (call.hasArgument("customParameters")) {
+                        Insider.Instance.itemRemovedFromCart(call.argument("productID").toString(), convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.itemRemovedFromCart(call.argument("productID").toString());
+                    }
                     break;
                 case InsiderHybridMethods.CART_CLEARED:
-                    Insider.Instance.cartCleared();
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.cartCleared(convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.cartCleared();
+                    }
                     break;
                 case InsiderHybridMethods.TAG_EVENT:
                     if (!call.hasArgument("name") || !call.hasArgument("parameters"))
                         return;
-                    InsiderHybrid.tagEvent(call.argument("name").toString(),
-                            (Map<String, Object>) call.argument("parameters"));
+                    String eventName = call.argument("name").toString();
+                    List<Map<String, Object>> parameters = (List<Map<String, Object>>) call.argument("parameters");
+                    FlutterInsiderUtils.parseEvent(eventName, parameters).build();
                     break;
                 case InsiderHybridMethods.VISIT_HOME_PAGE:
-                    Insider.Instance.visitHomePage();
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.visitHomePage(convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.visitHomePage();
+                    }
                     break;
                 case InsiderHybridMethods.VISIT_LISTING_PAGE:
                     if (!call.hasArgument("taxonomy"))
                         return;
                     String[] taxonomy = ((ArrayList<String>) call.argument("taxonomy")).toArray(new String[0]);
-                    Insider.Instance.visitListingPage(taxonomy);
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.visitListingPage(taxonomy, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.visitListingPage(taxonomy);
+                    }
                     break;
                 case InsiderHybridMethods.VISIT_PRODUCT_DETAIL_PAGE:
-                    if (!call.hasArgument(InsiderHybridMethods.PRODUCT_MUST_MAP)
-                            || !call.hasArgument(InsiderHybridMethods.PRODUCT_OPT_MAP))
+                    if (!call.hasArgument("requiredFields")
+                            || !call.hasArgument("optionalFields") || !call.hasArgument("productCustomParameters"))
                         return;
-                    InsiderProduct recommendationProduct = InsiderHybrid.createProduct(
-                            (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_MUST_MAP),
-                            (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_OPT_MAP));
-                    Insider.Instance.visitProductDetailPage(recommendationProduct);
+                    Map<String, Object> detailRequiredFields = (Map<String, Object>) call.argument("requiredFields");
+                    Map<String, Object> detailOptionalFields = (Map<String, Object>) call.argument("optionalFields");
+                    List<Map<String, Object>> detailCustomParameters = (List<Map<String, Object>>) call.argument("productCustomParameters");
+                    InsiderProduct detailProduct = FlutterInsiderUtils.parseProduct(detailRequiredFields, detailOptionalFields, detailCustomParameters);
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.visitProductDetailPage(detailProduct, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.visitProductDetailPage(detailProduct);
+                    }
                     break;
                 case InsiderHybridMethods.VISIT_CART_PAGE:
                     if (!call.hasArgument(InsiderHybridMethods.PRODUCTS))
                         return;
-                    InsiderHybrid.visitCartPage(
-                            (ArrayList<Map<String, Object>>) call.argument(InsiderHybridMethods.PRODUCTS));
+                    ArrayList<Map<String, Object>> cartProductsList = (ArrayList<Map<String, Object>>) call.argument(InsiderHybridMethods.PRODUCTS);
+                    InsiderProduct[] cartProducts = new InsiderProduct[cartProductsList.size()];
+                    for (int i = 0; i < cartProductsList.size(); i++) {
+                        Map<String, Object> productMap = cartProductsList.get(i);
+                        Map<String, Object> cartReqFields = (Map<String, Object>) productMap.get("requiredFields");
+                        Map<String, Object> cartOptFields = (Map<String, Object>) productMap.get("optionalFields");
+                        List<Map<String, Object>> cartCustomParams = (List<Map<String, Object>>) productMap.get("productCustomParameters");
+                        cartProducts[i] = FlutterInsiderUtils.parseProduct(cartReqFields, cartOptFields, cartCustomParams);
+                    }
+                    if (call.hasArgument("saleID")) {
+                        String cartSaleID = (String) call.argument("saleID");
+                        if (call.hasArgument("customParameters")) {
+                            Insider.Instance.visitCartPage(cartProducts, cartSaleID, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        } else {
+                            Insider.Instance.visitCartPage(cartProducts, cartSaleID);
+                        }
+                    } else if (call.hasArgument("customParameters")) {
+                        Insider.Instance.visitCartPage(cartProducts, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.visitCartPage(cartProducts);
+                    }
                     break;
                 case InsiderHybridMethods.REGISTER_WITH_QUIET_PERMISSION:
                 case "setForegroundPushCallback":
@@ -638,7 +760,11 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             .setWhatsappOptin(Boolean.parseBoolean(call.argument(Constants.VALUE).toString()));
                     break;
                 case "signUpConfirmation":
-                    Insider.Instance.signUpConfirmation();
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.signUpConfirmation(convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.signUpConfirmation();
+                    }
                     break;
                 case "reinitWithPartnerName":
                     Insider.Instance.reinitWithPartnerName(call.argument("newPartnerName"));
@@ -672,32 +798,51 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                 case "visitWishlistPage":
                     if (!call.hasArgument(InsiderHybridMethods.PRODUCTS))
                         return;
-
-                    Insider.Instance.visitWishlistPage(
-                            InsiderHybrid.convertArrayToInsiderProductArray(
-                                    (ArrayList<Map<String, Object>>) call.argument(InsiderHybridMethods.PRODUCTS)
-                            )
-                    );
+                    ArrayList<Map<String, Object>> wishlistProductsList = (ArrayList<Map<String, Object>>) call.argument(InsiderHybridMethods.PRODUCTS);
+                    InsiderProduct[] wishlistProducts = new InsiderProduct[wishlistProductsList.size()];
+                    for (int i = 0; i < wishlistProductsList.size(); i++) {
+                        Map<String, Object> productMap = wishlistProductsList.get(i);
+                        Map<String, Object> reqFields = (Map<String, Object>) productMap.get("requiredFields");
+                        Map<String, Object> optFields = (Map<String, Object>) productMap.get("optionalFields");
+                        List<Map<String, Object>> customParams = (List<Map<String, Object>>) productMap.get("productCustomParameters");
+                        wishlistProducts[i] = FlutterInsiderUtils.parseProduct(reqFields, optFields, customParams);
+                    }
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.visitWishlistPage(wishlistProducts, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.visitWishlistPage(wishlistProducts);
+                    }
                     break;
                 case "itemAddedToWishlist":
-                    if (!call.hasArgument(InsiderHybridMethods.PRODUCT_MUST_MAP)
-                            || !call.hasArgument(InsiderHybridMethods.PRODUCT_OPT_MAP))
+                    if (!call.hasArgument("requiredFields")
+                            || !call.hasArgument("optionalFields") || !call.hasArgument("productCustomParameters"))
                         return;
-
-                    Insider.Instance.itemAddedToWishlist(
-                            InsiderHybrid.createProduct(
-                                    (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_MUST_MAP),
-                                    (Map<String, Object>) call.argument(InsiderHybridMethods.PRODUCT_OPT_MAP))
-                    );
+                    Map<String, Object> wishlistRequiredFields = (Map<String, Object>) call.argument("requiredFields");
+                    Map<String, Object> wishlistOptionalFields = (Map<String, Object>) call.argument("optionalFields");
+                    List<Map<String, Object>> wishlistCustomParameters = (List<Map<String, Object>>) call.argument("productCustomParameters");
+                    InsiderProduct wishlistProduct = FlutterInsiderUtils.parseProduct(wishlistRequiredFields, wishlistOptionalFields, wishlistCustomParameters);
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.itemAddedToWishlist(wishlistProduct, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.itemAddedToWishlist(wishlistProduct);
+                    }
                     break;
                 case "itemRemovedFromWishlist":
                     if (!call.hasArgument("productID"))
                         return;
 
-                    Insider.Instance.itemRemovedFromWishlist(call.argument("productID").toString());
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.itemRemovedFromWishlist(call.argument("productID").toString(), convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.itemRemovedFromWishlist(call.argument("productID").toString());
+                    }
                     break;
                 case "wishlistCleared":
-                    Insider.Instance.wishlistCleared();
+                    if (call.hasArgument("customParameters")) {
+                        Insider.Instance.wishlistCleared(convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                    } else {
+                        Insider.Instance.wishlistCleared();
+                    }
                     break;
                 case "handleUniversalLink":
                     if (!call.hasArgument("universalLink"))
@@ -748,6 +893,27 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
         } catch (Exception e) {
             Insider.Instance.putException(e);
         }
+    }
+
+    private InsiderIdentifiers buildInsiderIdentifiers(Map<String, Object> identifiersMap) {
+        InsiderIdentifiers identifiers = new InsiderIdentifiers();
+        for (String key : identifiersMap.keySet()) {
+            switch (key) {
+                case InsiderHybridMethods.ADD_EMAIL:
+                    identifiers.addEmail(String.valueOf(identifiersMap.get(key)));
+                    break;
+                case InsiderHybridMethods.ADD_PHONE_NUMBER:
+                    identifiers.addPhoneNumber(String.valueOf(identifiersMap.get(key)));
+                    break;
+                case InsiderHybridMethods.ADD_USER_ID:
+                    identifiers.addUserID(String.valueOf(identifiersMap.get(key)));
+                    break;
+                default:
+                    identifiers.addCustomIdentifier(key, String.valueOf(identifiersMap.get(key)));
+                    break;
+            }
+        }
+        return identifiers;
     }
 
     private void handlePushDataForAppsFlyer(JSONObject pushPayload) {

@@ -4,7 +4,7 @@ import 'constants.dart';
 
 class FlutterInsiderEvent {
   String? _name;
-  Map<String, dynamic> _parameters = new Map();
+  List<Map<String, dynamic>> _parameters = [];
   late MethodChannel _channel;
 
   FlutterInsiderEvent(MethodChannel methodChannel, String name) {
@@ -14,7 +14,11 @@ class FlutterInsiderEvent {
 
   FlutterInsiderEvent addParameterWithString(String key, String value) {
     try {
-      this._parameters[key] = value;
+      this._parameters.add({
+        'type': 'string',
+        'key': key,
+        'value': value,
+      });
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -23,7 +27,11 @@ class FlutterInsiderEvent {
 
   FlutterInsiderEvent addParameterWithInt(String key, int value) {
     try {
-      this._parameters[key] = value;
+      this._parameters.add({
+        'type': 'integer',
+        'key': key,
+        'value': value,
+      });
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -32,7 +40,11 @@ class FlutterInsiderEvent {
 
   FlutterInsiderEvent addParameterWithDouble(String key, double value) {
     try {
-      this._parameters[key] = value;
+      this._parameters.add({
+        'type': 'double',
+        'key': key,
+        'value': value,
+      });
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -41,7 +53,11 @@ class FlutterInsiderEvent {
 
   FlutterInsiderEvent addParameterWithBoolean(String key, bool value) {
     try {
-      this._parameters[key] = value;
+      this._parameters.add({
+        'type': 'boolean',
+        'key': key,
+        'value': value,
+      });
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -50,7 +66,12 @@ class FlutterInsiderEvent {
 
   FlutterInsiderEvent addParameterWithDate(String key, DateTime value) {
     try {
-      this._parameters[key] = FlutterInsiderUtils.getDateForParsing(value);
+      final int epochMs = value.millisecondsSinceEpoch;
+      this._parameters.add({
+        'type': 'date',
+        'key': key,
+        'value': epochMs.toString(),
+      });
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -65,7 +86,11 @@ class FlutterInsiderEvent {
       if (validArray == null) {
         validArray = [];
       }
-      this._parameters[key] = validArray;
+      this._parameters.add({
+        'type': 'strings',
+        'key': key,
+        'value': validArray,
+      });
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -75,7 +100,11 @@ class FlutterInsiderEvent {
   @Deprecated('Use addParameterWithStringArray instead')
   FlutterInsiderEvent addParameterWithArray(String key, List<String> value) {
     try {
-      this._parameters[key] = value;
+      this._parameters.add({
+        'type': 'strings',
+        'key': key,
+        'value': value,
+      });
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -89,7 +118,11 @@ class FlutterInsiderEvent {
       if (validArray == null) {
         validArray = [];
       }
-      this._parameters[key] = validArray;
+      this._parameters.add({
+        'type': 'numbers',
+        'key': key,
+        'value': validArray,
+      });
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }

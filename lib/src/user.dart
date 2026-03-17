@@ -21,10 +21,9 @@ class FlutterInsiderUser {
 
   FlutterInsiderUser setBirthday(DateTime birthday) {
     try {
-      _setUserAttribute(Constants.SET_BIRTHDAY,
-          FlutterInsiderUtils.getDateForParsing(birthday));
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+      _setUserAttribute(Constants.SET_BIRTHDAY, birthday.millisecondsSinceEpoch.toString());
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
@@ -221,10 +220,10 @@ class FlutterInsiderUser {
   FlutterInsiderUser setCustomAttributeWithDate(String key, DateTime value) {
     try {
       Map<String, dynamic>? args = _createMapForMethodCall(
-          key, FlutterInsiderUtils.getDateForParsing(value));
+          key, value.millisecondsSinceEpoch.toString());
       _channel.invokeMethod(Constants.SET_CUSTOM_ATTRIBUTE_WITH_DATE, args);
-    } catch (Exception) {
-      FlutterInsiderUtils.putException(_channel, Exception);
+    } catch (e) {
+      FlutterInsiderUtils.putException(_channel, e);
     }
     return this;
   }
