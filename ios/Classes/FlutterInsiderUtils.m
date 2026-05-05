@@ -224,4 +224,24 @@
     return product;
 }
 
++ (NSString *)mapAppCardsErrorCode:(NSError *)error {
+    if ([error.domain isEqualToString:InsiderAppCardsErrorDomain]) {
+        switch (error.code) {
+            case InsiderAppCardsErrorCodeSdkNotInitialized: return @"sdkNotInitialized";
+            case InsiderAppCardsErrorCodeInvalidParameter: return @"invalidParameter";
+            case InsiderAppCardsErrorCodeNetworkError: return @"networkError";
+            case InsiderAppCardsErrorCodeServerError: return @"serverError";
+            case InsiderAppCardsErrorCodeParseError: return @"parseError";
+            default: return @"unknown";
+        }
+    }
+    return @"unknown";
+}
+
++ (NSDictionary *)appCardsErrorToDictionary:(NSError *)error {
+    NSString *code = [self mapAppCardsErrorCode:error];
+    NSString *message = error.localizedDescription ?: @"An unexpected error occurred.";
+    return @{@"code": code, @"message": message};
+}
+
 @end

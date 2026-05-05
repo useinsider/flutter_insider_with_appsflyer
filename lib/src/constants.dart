@@ -2,20 +2,25 @@ class Constants {
   //method names
   static const String INIT_WITH_LAUNCH_OPTIONS = "initWithLaunchOptions";
   static const String INIT_WITH_CUSTOM_ENDPOINT = "initWithCustomEndpoint";
-  static const String REGISTER_WITH_QUIET_PERMISSION = "registerWithQuietPermission";
+  static const String REGISTER_WITH_QUIET_PERMISSION =
+      "registerWithQuietPermission";
   static const String START_TRACKING_GEOFENCE = "startTrackingGeofence";
   static const String SET_ALLOWS_BACKGROUND_LOCATION_UPDATES =
       "setAllowsBackgroundLocationUpdates";
   static const String HANDLE_NOTIFICATION = "handleNotification";
-  static const String TRIGGER_PUSH_PROCESS_WITH_NOTIFICATION_DATA = "triggerPushProcessWithNotificationData";
+  static const String TRIGGER_PUSH_PROCESS_WITH_NOTIFICATION_DATA =
+      "triggerPushProcessWithNotificationData";
   static const String SET_GDPR_CONSENT = "setGDPRConsent";
   static const String SET_MOBILE_APP_ACCESS = "setMobileAppAccess";
   static const String GET_CONTENT_STRING_WITH_NAME = "getContentStringWithName";
   static const String GET_CONTENT_INT_WITH_NAME = "getContentIntWithName";
   static const String GET_CONTENT_BOOL_WITH_NAME = "getContentBoolWithName";
-  static const String GET_CONTENT_STRING_WITHOUT_CACHE = "getContentStringWithoutCache";
-  static const String GET_CONTENT_INT_WITHOUT_CACHE = "getContentIntWithoutCache";
-  static const String GET_CONTENT_BOOL_WITHOUT_CACHE = "getContentBoolWithoutCache";
+  static const String GET_CONTENT_STRING_WITHOUT_CACHE =
+      "getContentStringWithoutCache";
+  static const String GET_CONTENT_INT_WITHOUT_CACHE =
+      "getContentIntWithoutCache";
+  static const String GET_CONTENT_BOOL_WITHOUT_CACHE =
+      "getContentBoolWithoutCache";
   static const String REMOVE_INAPP = "removeInapp";
   static const String VISIT_HOME_PAGE = "visitHomePage";
   static const String VISIT_LISTING_PAGE = "visitListingPage";
@@ -27,33 +32,47 @@ class Constants {
   static const String ITEM_REMOVED_FROM_CART = "itemRemovedFromCart";
   static const String CART_CLEARED = "cartCleared";
   static const String ITEM_ADDED_TO_WISH_LIST = "itemAddedToWishlist";
-  static const String ITEM_REMOVED_FROM_WISH_LIST  = "itemRemovedFromWishlist";
+  static const String ITEM_REMOVED_FROM_WISH_LIST = "itemRemovedFromWishlist";
   static const String WISH_LIST_CLEARED = "wishlistCleared";
   static const String SET_CUSTOM_ENDPOINT = "setCustomEndpoint";
   static const String GET_SMART_RECOMMENDATION = "getSmartRecommendation";
-  static const String GET_SMART_RECOMMENDATION_WITH_PRODUCT = "getSmartRecommendationWithProduct";
-  static const String GET_SMART_RECOMMENDATION_WITH_PRODUCT_IDS = "getSmartRecommendationWithProductIDs";
-  static const String CLICK_SMART_RECOMMENDATION_PRODUCT = "clickSmartRecommendationProduct";
+  static const String GET_SMART_RECOMMENDATION_WITH_PRODUCT =
+      "getSmartRecommendationWithProduct";
+  static const String GET_SMART_RECOMMENDATION_WITH_PRODUCT_IDS =
+      "getSmartRecommendationWithProductIDs";
+  static const String CLICK_SMART_RECOMMENDATION_PRODUCT =
+      "clickSmartRecommendationProduct";
   static const String GET_MESSAGE_CENTER_DATA = "getMessageCenterData";
-  static const String GET_MESSAGE_CENTER_DATA_WITH_IDENTIFIERS = "getMessageCenterDataWithIdentifiers";
+  static const String GET_APP_CARDS_CAMPAIGNS = "getAppCardsCampaigns";
+  static const String GET_MESSAGE_CENTER_DATA_WITH_IDENTIFIERS =
+      "getMessageCenterDataWithIdentifiers";
   static const String TAG_EVENT = "tagEvent";
-  static const String SET_CUSTOM_ATTRIBUTE_WITH_STRING = "setCustomAttributeWithString";
-  static const String SET_CUSTOM_ATTRIBUTE_WITH_INT = "setCustomAttributeWithInt";
-  static const String SET_CUSTOM_ATTRIBUTE_WITH_DOUBLE = "setCustomAttributeWithDouble";
-  static const String SET_CUSTOM_ATTRIBUTE_WITH_BOOLEAN = "setCustomAttributeWithBoolean";
-  static const String SET_CUSTOM_ATTRIBUTE_WITH_DATE = "setCustomAttributeWithDate";
-  static const String SET_CUSTOM_ATTRIBUTE_WITH_ARRAY = "setCustomAttributeWithArray";
+  static const String SET_CUSTOM_ATTRIBUTE_WITH_STRING =
+      "setCustomAttributeWithString";
+  static const String SET_CUSTOM_ATTRIBUTE_WITH_INT =
+      "setCustomAttributeWithInt";
+  static const String SET_CUSTOM_ATTRIBUTE_WITH_DOUBLE =
+      "setCustomAttributeWithDouble";
+  static const String SET_CUSTOM_ATTRIBUTE_WITH_BOOLEAN =
+      "setCustomAttributeWithBoolean";
+  static const String SET_CUSTOM_ATTRIBUTE_WITH_DATE =
+      "setCustomAttributeWithDate";
+  static const String SET_CUSTOM_ATTRIBUTE_WITH_ARRAY =
+      "setCustomAttributeWithArray";
   static const String UNSET_CUSTOM_ATTRIBUTE = "unsetCustomAttribute";
   static const String LOGIN = "login";
   static const String LOGOUT = "logout";
   static const String LOGOUT_RESETTING_INSIDER_ID = "logoutResettingInsiderID";
   static const String ENABLE_IDFA_COLLECTION = 'enableIDFACollection';
   static const String SIGN_UP_CONFIRMATION = 'signUpConfirmation';
-  static const String SET_ACTIVE_FOREGROUND_PUSH_VIEW = 'setActiveForegroundPushView';
-  static const String SET_FOREGROUND_PUSH_CALLBACK = 'setForegroundPushCallback';
+  static const String SET_ACTIVE_FOREGROUND_PUSH_VIEW =
+      'setActiveForegroundPushView';
+  static const String SET_FOREGROUND_PUSH_CALLBACK =
+      'setForegroundPushCallback';
   static const String REINIT_WITH_PARTNER_NAME = 'reinitWithPartnerName';
   static const String GET_INSIDER_ID = 'getInsiderID';
-  static const String REGISTER_INSIDER_ID_LISTENER = 'registerInsiderIDListener';
+  static const String REGISTER_INSIDER_ID_LISTENER =
+      'registerInsiderIDListener';
   static const String SET_PUSH_TOKEN = 'setPushToken';
   static const String DISABLE_IN_APP_MESSAGES = 'disableInAppMessages';
   static const String ENABLE_IN_APP_MESSAGES = 'enableInAppMessages';
@@ -62,7 +81,8 @@ class Constants {
   static const String ENABLE_CARRIER_COLLECTION = 'enableCarrierCollection';
   static const String ENABLE_IP_COLLECTION = 'enableIpCollection';
   static const String ENABLE_LOCATION_COLLECTION = 'enableLocationCollection';
-  static const String SET_INTERNAL_BROWSER_CLOSE_BUTTON_POSITION = 'setInternalBrowserCloseButtonPosition';
+  static const String SET_INTERNAL_BROWSER_CLOSE_BUTTON_POSITION =
+      'setInternalBrowserCloseButtonPosition';
 
   static const String ADD_EMAIL = "addEmail";
   static const String ADD_PHONE_NUMBER = "addPhoneNumber";
@@ -126,4 +146,10 @@ class Constants {
   static const String CALLBACK_EVENT = "event";
   static const String CALLBACK_FOREGROUND_PUSH = "foreground_push";
   static const String CALLBACK_INSIDER_ID_LISTENER = "insider_id_listener";
+
+  static const String APP_CARDS_BUTTON_CLICK = "clickAppCardButton";
+  static const String APP_CARDS_MARK_AS_READ = "appCardsMarkAsRead";
+  static const String APP_CARDS_MARK_AS_UNREAD = "appCardsMarkAsUnread";
+  static const String APP_CARDS_VIEW = "viewAppCard";
+  static const String APP_CARDS_CLICK = "clickAppCard";
 }

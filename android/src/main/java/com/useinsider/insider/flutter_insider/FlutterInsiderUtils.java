@@ -1,10 +1,12 @@
 package com.useinsider.insider.flutter_insider;
 
+import com.useinsider.insider.AppCardsException;
 import com.useinsider.insider.Insider;
 import com.useinsider.insider.InsiderEvent;
 import com.useinsider.insider.InsiderProduct;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -306,5 +308,23 @@ public class FlutterInsiderUtils {
         return value instanceof Boolean
                 ? (Boolean) value
                 : Boolean.parseBoolean(value.toString());
+    }
+
+    public static String mapAppCardsExceptionCode(AppCardsException exception) {
+        switch (exception.getCode()) {
+            case SDK_NOT_INITIALIZED: return "sdkNotInitialized";
+            case INVALID_PARAMETER: return "invalidParameter";
+            case NETWORK_ERROR: return "networkError";
+            case SERVER_ERROR: return "serverError";
+            case PARSE_ERROR: return "parseError";
+            default: return "unknown";
+        }
+    }
+
+    public static HashMap<String, Object> appCardsErrorToMap(AppCardsException error) {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("code", error != null ? mapAppCardsExceptionCode(error) : "unknown");
+        map.put("message", error != null && error.getMessage() != null ? error.getMessage() : "An unexpected error occurred.");
+        return map;
     }
 }

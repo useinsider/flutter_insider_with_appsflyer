@@ -15,5 +15,8 @@
                                          andOptionalFields:(nullable NSDictionary *)optionalFields
                                        andCustomParameters:(nullable NSArray *)customParameters;
 
++ (nonnull NSString *)mapAppCardsErrorCode:(nonnull NSError *)error;
++ (nonnull NSDictionary *)appCardsErrorToDictionary:(nonnull NSError *)error;
+
 @end
 

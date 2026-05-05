@@ -14,6 +14,7 @@ class Constants {
     static final String LOCALE = "locale";
     static final String RECOMMENDATION_LOG = "[INSIDER][loadRecommendationData]";
     static final String MESSAGE_CENTER_LOG = "[INSIDER][messageCenterData]";
+    static final String APP_CARDS_LOG = "[INSIDER][appCardsData]";
     static final String EXCEPTION = "exception";
     static final String ENDPOINT = "endpoint";
     static final String CURRENCY = "currency";

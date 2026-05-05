@@ -495,3 +495,49 @@
 * Added getMessageCenterDataWithIdentifiers method.
 * Added saleID support for visitCartPage and itemRemovedFromCart methods.
 * Android & iOS SDK updated.
+
+## 5.0.0
+
+* Android & iOS SDK updated. (Android: 16.0.0, iOS: 15.0.0)
+* Added App Cards feature with the following methods:
+  * `getCampaigns` — fetch App Card campaigns.
+  * `markAsRead` — mark App Cards as read.
+  * `markAsUnread` — mark App Cards as unread.
+  * `delete` — delete App Cards by IDs.
+  * `view` — report an App Card view event.
+  * `click` — report an App Card click event.
+  * `clickButton` — report an App Card button click event.
+* Added structured error handling for App Cards (`InsiderAppCardsException`).
+* Fixed missing MethodChannel result callbacks on Android and iOS.
+
+## 5.0.0+nh
+
+* Android & iOS SDK updated. (Android: 16.0.0, iOS: 15.0.0)
+* Added App Cards feature with the following methods:
+  * `getCampaigns` — fetch App Card campaigns.
+  * `markAsRead` — mark App Cards as read.
+  * `markAsUnread` — mark App Cards as unread.
+  * `delete` — delete App Cards by IDs.
+  * `view` — report an App Card view event.
+  * `click` — report an App Card click event.
+  * `clickButton` — report an App Card button click event.
+* Added structured error handling for App Cards (`InsiderAppCardsException`).
+* Fixed missing MethodChannel result callbacks on Android and iOS.
+
+## 5.0.1
+
+* App Cards improvements and refinements.
+
+## 5.0.1+nh
+
+* App Cards improvements and refinements.
+
+## 5.0.2
+
+* Android SDK updated to 16.0.2.
+* Android: WebView now uses Activity context so native pickers open correctly.
+
+## 5.0.2+nh
+
+* Android SDK updated to 16.0.2.
+* Android: WebView now uses Activity context so native pickers open correctly.

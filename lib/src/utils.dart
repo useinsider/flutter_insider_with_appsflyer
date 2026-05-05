@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'constants.dart';
 
 class FlutterInsiderUtils {
   static Future<void> putException(MethodChannel methodChannel,
@@ -8,7 +7,7 @@ class FlutterInsiderUtils {
 
     args["exception"] = exception.toString();
 
-    methodChannel.invokeMethod('putException', args);
+    await methodChannel.invokeMethod('putException', args);
   }
 
   static getContentOptimizerMap(String variableName, dynamic defaultValue,
