@@ -4,6 +4,18 @@ import 'app_cards_models.dart';
 import 'app_cards_error.dart';
 import 'utils.dart';
 
+/// Public API surface for the App Cards feature.
+///
+/// Access via [FlutterInsider.appCards]. Methods that fail with a recoverable
+/// platform error throw an [InsiderAppCardsException]; non-platform errors are
+/// reported to the native SDK and swallowed.
+///
+/// ```dart
+/// final response = await FlutterInsider.Instance.appCards.getCampaigns();
+/// for (final card in response?.appCards ?? []) {
+///   card.view();
+/// }
+/// ```
 class FlutterInsiderAppCards {
   final MethodChannel _channel;
 
@@ -22,6 +34,11 @@ class FlutterInsiderAppCards {
     );
   }
 
+  /// Fetches the active App Card campaigns for the current user.
+  ///
+  /// Returns `null` when the native side reports no data. Throws
+  /// [InsiderAppCardsException] when the native bridge surfaces a structured
+  /// error.
   Future<InsiderAppCardCampaignsResponse?> getCampaigns() async {
     try {
       final result = await _channel.invokeMethod<Map>(
@@ -41,6 +58,9 @@ class FlutterInsiderAppCards {
     }
   }
 
+  /// Marks the given [appCardIds] as read.
+  ///
+  /// Throws [InsiderAppCardsException] on a structured native error.
   Future<void> markAsRead(List<String> appCardIds) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -54,6 +74,9 @@ class FlutterInsiderAppCards {
     }
   }
 
+  /// Marks the given [appCardIds] as unread.
+  ///
+  /// Throws [InsiderAppCardsException] on a structured native error.
   Future<void> markAsUnread(List<String> appCardIds) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -67,6 +90,9 @@ class FlutterInsiderAppCards {
     }
   }
 
+  /// Deletes the given [appCardIds].
+  ///
+  /// Throws [InsiderAppCardsException] on a structured native error.
   Future<void> delete(List<String> appCardIds) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -80,6 +106,7 @@ class FlutterInsiderAppCards {
     }
   }
 
+  /// Records a view (impression) for the given [appCard].
   void view(InsiderAppCard appCard) {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -91,6 +118,7 @@ class FlutterInsiderAppCards {
     }
   }
 
+  /// Records a tap on the given [appCard].
   void click(InsiderAppCard appCard) {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -102,6 +130,7 @@ class FlutterInsiderAppCards {
     }
   }
 
+  /// Records a tap on a [button] inside an App Card.
   void clickButton(InsiderAppCardButton button) {
     try {
       Map<String, dynamic> args = <String, dynamic>{};

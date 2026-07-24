@@ -1,6 +1,13 @@
 import 'package:flutter/services.dart';
 
+/// Internal helpers shared by the public Flutter API surfaces.
+///
+/// Most members are implementation details of the plugin; only
+/// [serializeCustomParameters] and [putException] are documented here as they
+/// appear in dartdoc references from the public API.
 class FlutterInsiderUtils {
+  /// Forwards a caught exception to the native Insider SDK as a non-fatal
+  /// error report. Fire-and-forget — never re-throws.
   static Future<void> putException(MethodChannel methodChannel,
       Object exception) async {
     Map<String, dynamic> args = <String, dynamic>{};
@@ -62,6 +69,12 @@ class FlutterInsiderUtils {
     }
   }
 
+  /// Serialises a `<String, Object>` map of custom parameters into the typed
+  /// list format `[{type, key, value}]` expected by both native bridges.
+  ///
+  /// Supported value types: `bool`, `int`, `double`, `String`, `DateTime`
+  /// (epoch milliseconds), `List<String>`, `List<num>`. Unsupported entries
+  /// are silently dropped.
   static List<Map<String, Object>> serializeCustomParameters(Map<String, Object> params) {
     List<Map<String, Object>> result = [];
     params.forEach((key, value) {

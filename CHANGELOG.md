@@ -541,3 +541,11 @@
 
 * Android SDK updated to 16.0.2.
 * Android: WebView now uses Activity context so native pickers open correctly.
+
+## 5.0.3
+
+* Android & iOS SDK updated. (Android: 16.0.7, iOS: 15.1.0)
+
+## 5.0.3+nh
+
+* Android & iOS SDK updated. (Android: 16.0.7, iOS: 15.1.0)

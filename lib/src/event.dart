@@ -2,6 +2,20 @@ import 'package:flutter/services.dart';
 import 'utils.dart';
 import 'constants.dart';
 
+/// Builder for tagging custom events with typed parameters.
+///
+/// Obtain an instance via [FlutterInsider.tagEvent], chain `addParameter*`
+/// calls, then dispatch with [build]:
+///
+/// ```dart
+/// await FlutterInsider.Instance
+///     .tagEvent('add_to_favorites')
+///     .addParameterWithString('product_id', 'sku-123')
+///     .addParameterWithDouble('price', 29.99)
+///     .build();
+/// ```
+///
+/// The event is not delivered to the native SDK until [build] is called.
 class FlutterInsiderEvent {
   String? _name;
   List<Map<String, dynamic>> _parameters = [];
@@ -12,6 +26,7 @@ class FlutterInsiderEvent {
     this._name = name;
   }
 
+  /// Adds a string-typed parameter.
   FlutterInsiderEvent addParameterWithString(String key, String value) {
     try {
       this._parameters.add({
@@ -25,6 +40,7 @@ class FlutterInsiderEvent {
     return this;
   }
 
+  /// Adds an integer-typed parameter.
   FlutterInsiderEvent addParameterWithInt(String key, int value) {
     try {
       this._parameters.add({
@@ -38,6 +54,7 @@ class FlutterInsiderEvent {
     return this;
   }
 
+  /// Adds a double-typed parameter.
   FlutterInsiderEvent addParameterWithDouble(String key, double value) {
     try {
       this._parameters.add({
@@ -51,6 +68,7 @@ class FlutterInsiderEvent {
     return this;
   }
 
+  /// Adds a boolean-typed parameter.
   FlutterInsiderEvent addParameterWithBoolean(String key, bool value) {
     try {
       this._parameters.add({
@@ -64,6 +82,8 @@ class FlutterInsiderEvent {
     return this;
   }
 
+  /// Adds a date-typed parameter. Stored as epoch milliseconds on the native
+  /// side.
   FlutterInsiderEvent addParameterWithDate(String key, DateTime value) {
     try {
       final int epochMs = value.millisecondsSinceEpoch;
@@ -78,6 +98,7 @@ class FlutterInsiderEvent {
     return this;
   }
 
+  /// Adds a string-array parameter, dropping any null or empty entries.
   FlutterInsiderEvent addParameterWithStringArray(
       String key, List<String> values) {
     try {
@@ -97,6 +118,9 @@ class FlutterInsiderEvent {
     return this;
   }
 
+  /// Adds a string-array parameter without validation.
+  ///
+  /// Prefer [addParameterWithStringArray], which filters invalid entries.
   @Deprecated('Use addParameterWithStringArray instead')
   FlutterInsiderEvent addParameterWithArray(String key, List<String> value) {
     try {
@@ -111,6 +135,7 @@ class FlutterInsiderEvent {
     return this;
   }
 
+  /// Adds a numeric-array parameter, dropping any non-finite entries.
   FlutterInsiderEvent addParameterWithNumericArray(
       String key, List<num> values) {
     try {
@@ -129,6 +154,9 @@ class FlutterInsiderEvent {
     return this;
   }
 
+  /// Dispatches the event to the native Insider SDK.
+  ///
+  /// Call this once after attaching all parameters; the builder is single-use.
   Future<void> build() async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};

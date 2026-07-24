@@ -1,3 +1,15 @@
+/// Flutter plugin for the Insider mobile SDK.
+///
+/// Exposes Insider's user tracking, product events, push notifications,
+/// smart recommendations, content optimizer, message center and App Cards
+/// features to Flutter apps via platform channels.
+///
+/// Entry point: [FlutterInsider.Instance]. Initialise the SDK once during
+/// app startup with [FlutterInsider.init], then use the facade methods to
+/// emit events, identify users (via [FlutterInsider.getCurrentUser]) and
+/// fetch personalised content.
+library flutter_insider;
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
@@ -14,7 +26,12 @@ export 'src/insider_app_cards.dart';
 export 'src/app_cards_models.dart';
 export 'src/app_cards_error.dart';
 
+/// Singleton facade over the native Insider SDK.
+///
+/// Access via [FlutterInsider.Instance]. Initialise once with [init] (or
+/// [initWithCustomEndpoint]) before calling any other method.
 class FlutterInsider {
+  /// The shared singleton instance.
   static FlutterInsider Instance = new FlutterInsider();
   InsiderCloseButtonPosition closeButtonPosition = InsiderCloseButtonPosition();
   static FlutterInsiderUser? _insiderUser;
@@ -39,7 +56,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-5.0.2+nh";
+    args["sdkVersion"] = "F-5.0.3+nh";
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;
@@ -71,6 +88,13 @@ class FlutterInsider {
     );
   }
 
+  /// Initialises the Insider SDK with the given [partnerName] and
+  /// [appGroup], registering [function] as the callback that receives Insider
+  /// events.
+  ///
+  /// The callback receives `(int actionType, dynamic data)`; switch on the
+  /// constants in [InsiderCallbackAction] to handle each kind. Call once
+  /// during app startup.
   Future<void> init(
     String partnerName,
     String appGroup,
@@ -84,6 +108,10 @@ class FlutterInsider {
     }
   }
 
+  /// Initialises the SDK against a [customEndpoint] (typically a regional or
+  /// staging gateway).
+  ///
+  /// Use only when instructed by Insider. Otherwise prefer [init].
   Future<void> initWithCustomEndpoint(
     String partnerName,
     String appGroup,
@@ -98,6 +126,8 @@ class FlutterInsider {
     }
   }
 
+  /// Registers the SDK with the user's *quiet permission* preference. When
+  /// `true`, push registration proceeds without prompting the user.
   Future<void> registerWithQuietPermission(bool permission) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -207,6 +237,8 @@ class FlutterInsider {
     }
   }
 
+  /// Records the user's GDPR consent decision. Pass `true` to enable
+  /// tracking, `false` to disable.
   Future<void> setGDPRConsent(bool consent) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -217,6 +249,8 @@ class FlutterInsider {
     }
   }
 
+  /// Toggles whether the SDK may communicate with Insider servers from the
+  /// mobile app. `false` disables network activity.
   Future<void> setMobileAppAccess(bool mobileAppAccess) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -227,6 +261,12 @@ class FlutterInsider {
     }
   }
 
+  /// Reads a string Content Optimizer variable.
+  ///
+  /// [variableName] is the variable defined in the Insider panel,
+  /// [defaultValue] is returned when the variable is missing or fetching
+  /// fails, and [dataType] is one of [ContentOptimizerDataType.CONTENT] or
+  /// [ContentOptimizerDataType.ELEMENT].
   Future<String?> getContentStringWithName(
     String variableName,
     String defaultValue,
@@ -250,6 +290,8 @@ class FlutterInsider {
     }
   }
 
+  /// Reads an integer Content Optimizer variable. See
+  /// [getContentStringWithName] for parameter semantics.
   Future<int?> getContentIntWithName(
     String variableName,
     int defaultValue,
@@ -273,6 +315,8 @@ class FlutterInsider {
     }
   }
 
+  /// Reads a boolean Content Optimizer variable. See
+  /// [getContentStringWithName] for parameter semantics.
   Future<bool?> getContentBoolWithName(
     String variableName,
     bool defaultValue,
@@ -365,6 +409,7 @@ class FlutterInsider {
     }
   }
 
+  /// Dismisses any in-app message currently being displayed.
   Future<void> removeInapp() async {
     try {
       await _channel.invokeMethod(Constants.REMOVE_INAPP);
@@ -373,6 +418,7 @@ class FlutterInsider {
     }
   }
 
+  /// Records a home-page visit, optionally enriched with [customParameters].
   Future<void> visitHomePage({Map<String, Object>? customParameters}) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -386,6 +432,7 @@ class FlutterInsider {
     }
   }
 
+  /// Records a category / listing page visit identified by [taxonomy].
   Future<void> visitListingPage(
     List<String> taxonomy, {
     Map<String, Object>? customParameters,
@@ -403,6 +450,8 @@ class FlutterInsider {
     }
   }
 
+  /// Records a product detail page visit. Build [product] via
+  /// [createNewProduct].
   Future<void> visitProductDetailPage(
     FlutterInsiderProduct product, {
     Map<String, Object>? customParameters,
@@ -422,6 +471,8 @@ class FlutterInsider {
     }
   }
 
+  /// Records a cart page visit with the current cart [products] and an
+  /// optional [saleID] correlating the cart to a downstream purchase.
   Future<void> visitCartPage(
     List<FlutterInsiderProduct> products, {
     String? saleID,
@@ -451,6 +502,7 @@ class FlutterInsider {
     }
   }
 
+  /// Records a wishlist page visit with the current wishlist [products].
   Future<void> visitWishlistPage(
     List<FlutterInsiderProduct> products, {
     Map<String, Object>? customParameters,
@@ -476,10 +528,17 @@ class FlutterInsider {
     }
   }
 
+  /// Returns the [FlutterInsiderUser] builder for the current user, or
+  /// `null` if [init] has not yet completed.
   FlutterInsiderUser? getCurrentUser() {
     return _insiderUser;
   }
 
+  /// Constructs a [FlutterInsiderProduct] with the catalog-required fields.
+  ///
+  /// Chain `set*` calls on the result to attach optional metadata (color,
+  /// brand, stock, ...) before passing it to event APIs such as
+  /// [visitProductDetailPage] or [itemAddedToCart].
   FlutterInsiderProduct createNewProduct(
     String productID,
     name,
@@ -499,6 +558,10 @@ class FlutterInsider {
     );
   }
 
+  /// Reports a purchase of [product] under the given [uniqueSaleID].
+  ///
+  /// Call once per purchased product; pass the same `uniqueSaleID` for all
+  /// products belonging to the same order.
   Future<void> itemPurchased(
     String uniqueSaleID,
     FlutterInsiderProduct product, {
@@ -520,6 +583,7 @@ class FlutterInsider {
     }
   }
 
+  /// Records that [product] was added to the cart.
   Future<void> itemAddedToCart(
     FlutterInsiderProduct product, {
     Map<String, Object>? customParameters,
@@ -539,6 +603,8 @@ class FlutterInsider {
     }
   }
 
+  /// Records that the product identified by [productID] was removed from the
+  /// cart, optionally tagging the open order via [saleID].
   Future<void> itemRemovedFromCart(
     String productID, {
     String? saleID,
@@ -560,6 +626,7 @@ class FlutterInsider {
     }
   }
 
+  /// Records that the cart was cleared (all items removed).
   Future<void> cartCleared({Map<String, Object>? customParameters}) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -622,10 +689,19 @@ class FlutterInsider {
     }
   }
 
+  /// Returns a [FlutterInsiderEvent] builder for a custom event named
+  /// [eventName].
+  ///
+  /// Chain `addParameter*` calls to attach typed parameters and call
+  /// [FlutterInsiderEvent.build] to dispatch the event.
   FlutterInsiderEvent tagEvent(String eventName) {
     return new FlutterInsiderEvent(_channel, eventName);
   }
 
+  /// Fetches a Smart Recommendation by its [recommendationID].
+  ///
+  /// Returns the recommendation payload or `null` on failure. [locale] and
+  /// [currency] are used for content localisation and price formatting.
   Future<Map?> getSmartRecommendation(
     int recommendationID,
     String locale,
@@ -717,6 +793,11 @@ class FlutterInsider {
     }
   }
 
+  /// Fetches Message Center entries dated between [startDate] and [endDate],
+  /// up to [limit] items.
+  ///
+  /// Returns an empty list if `startDate >= endDate`. Returns `null` on
+  /// failure.
   Future<List?> getMessageCenterData(
     DateTime startDate,
     DateTime endDate,
@@ -741,6 +822,7 @@ class FlutterInsider {
     }
   }
 
+  /// Entry point for the App Cards API. See [FlutterInsiderAppCards].
   FlutterInsiderAppCards get appCards {
     if (_insiderAppCards == null) {
       _insiderAppCards = new FlutterInsiderAppCards(_channel);
@@ -774,6 +856,8 @@ class FlutterInsider {
     }
   }
 
+  /// Records a sign-up confirmation event after the user completes
+  /// registration.
   Future<void> signUpConfirmation({
     Map<String, Object>? customParameters,
   }) async {
@@ -797,6 +881,8 @@ class FlutterInsider {
     }
   }
 
+  /// Registers [callback] to receive foreground push notifications while the
+  /// app is in the foreground.
   Future<void> setForegroundPushCallback(Function callback) async {
     try {
       registerEventChannel(callback, Constants.CALLBACK_FOREGROUND_PUSH);
@@ -806,6 +892,8 @@ class FlutterInsider {
     }
   }
 
+  /// Re-initialises the SDK against a different [newPartnerName]. Use sparingly
+  /// — typically only in apps that switch tenants at runtime.
   Future<void> reinitWithPartnerName(String newPartnerName) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -816,6 +904,7 @@ class FlutterInsider {
     }
   }
 
+  /// Returns the current Insider ID, or `null` if it cannot be retrieved.
   Future<String?> getInsiderID() async {
     try {
       return await _channel.invokeMethod(Constants.GET_INSIDER_ID);
@@ -825,6 +914,9 @@ class FlutterInsider {
     }
   }
 
+  /// Registers [callback] to be invoked whenever the Insider ID changes
+  /// (e.g. after [FlutterInsiderUser.login] or
+  /// [FlutterInsiderUser.logoutResettingInsiderID]).
   Future<void> registerInsiderIDListener(Function callback) async {
     try {
       _insiderIDListener.receiveBroadcastStream().listen(
@@ -841,6 +933,7 @@ class FlutterInsider {
     }
   }
 
+  /// Forwards a [pushToken] obtained from FCM / APNs to the Insider SDK.
   Future<void> setPushToken(String pushToken) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -851,6 +944,7 @@ class FlutterInsider {
     }
   }
 
+  /// Suppresses in-app messages until [enableInAppMessages] is called.
   void disableInAppMessages() {
     try {
       _channel.invokeMethod(Constants.DISABLE_IN_APP_MESSAGES);
@@ -859,6 +953,7 @@ class FlutterInsider {
     }
   }
 
+  /// Re-enables in-app messages after a previous [disableInAppMessages].
   void enableInAppMessages() {
     try {
       _channel.invokeMethod(Constants.ENABLE_IN_APP_MESSAGES);
@@ -867,6 +962,10 @@ class FlutterInsider {
     }
   }
 
+  /// Lets the Insider SDK process a deep / universal link [url].
+  ///
+  /// Call from your `onLink` / `onAppLink` handler to route Insider campaign
+  /// links correctly.
   void handleUniversalLink(String url) {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
@@ -877,6 +976,8 @@ class FlutterInsider {
     }
   }
 
+  /// Sets the close-button position for the Insider internal browser. Pass
+  /// one of the [InsiderCloseButtonPosition] constants.
   Future<void> setInternalBrowserCloseButtonPosition(String position) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
