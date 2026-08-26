@@ -56,7 +56,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-5.0.3+nh";
+    args["sdkVersion"] = "F-5.2.0+nh";
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;

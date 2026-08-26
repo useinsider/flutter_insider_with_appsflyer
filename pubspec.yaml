@@ -1,6 +1,6 @@
 name: flutter_insider
 description: Flutter plugin wrapping the Insider mobile SDK for user tracking, custom events, push notifications, smart recommendations, and App Cards.
-version: 5.0.3+nh
+version: 5.2.0+nh
 homepage: https://useinsider.com
 repository: https://github.com/useinsider/flutter-insider
 issue_tracker: https://github.com/useinsider/flutter-insider/issues

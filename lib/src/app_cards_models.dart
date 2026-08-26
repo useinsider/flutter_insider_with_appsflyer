@@ -52,6 +52,34 @@ class InsiderAppCardImage {
   }
 }
 
+class InsiderAppCardCategory {
+  int id;
+  String name;
+
+  InsiderAppCardCategory({
+    required this.id,
+    required this.name,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+    };
+  }
+
+  static InsiderAppCardCategory? fromMap(Map<String, dynamic>? map) {
+    if (map == null || map['id'] is! int || map['name'] == null) {
+      return null;
+    }
+
+    return InsiderAppCardCategory(
+      id: map['id'] as int,
+      name: map['name'].toString(),
+    );
+  }
+}
+
 abstract class InsiderAppCardAction {
   String actionType;
 
@@ -262,6 +290,7 @@ class InsiderAppCard {
   InsiderAppCardContent? content;
   List<InsiderAppCardButton>? buttons;
   InsiderAppCardAction? action;
+  List<InsiderAppCardCategory>? categories;
 
   InsiderAppCard({
     required this.id,
@@ -271,6 +300,7 @@ class InsiderAppCard {
     this.content,
     this.buttons,
     this.action,
+    this.categories,
   });
 
   Future<void> markAsRead() async {
@@ -308,6 +338,8 @@ class InsiderAppCard {
       'content': content?.toMap(),
       'buttons': buttons?.map((btn) => btn.toMap()).toList(),
       'action': action?.toMap(),
+      'categories':
+          (categories ?? []).map((category) => category.toMap()).toList(),
     };
   }
 
@@ -375,6 +407,24 @@ class InsiderAppCard {
       }
     }
 
+    List<InsiderAppCardCategory>? categories;
+    if (map['categories'] != null && map['categories'] is List) {
+      categories = [];
+      for (final rawCategory in (map['categories'] as List)) {
+        if (rawCategory is! Map) {
+          print('[ERROR] Skipping non-dictionary category element: $rawCategory');
+          continue;
+        }
+        final category = InsiderAppCardCategory.fromMap(
+            Map<String, dynamic>.from(rawCategory));
+        if (category == null) {
+          print('[ERROR] Skipping malformed category element: $rawCategory');
+          continue;
+        }
+        categories.add(category);
+      }
+    }
+
     return InsiderAppCard(
       id: id as String,
       type: type as String,
@@ -383,6 +433,7 @@ class InsiderAppCard {
       content: content,
       buttons: buttons,
       action: action,
+      categories: categories,
     );
   }
 }
