@@ -8,13 +8,28 @@ import 'package:flutter/services.dart';
 class FlutterInsiderUtils {
   /// Forwards a caught exception to the native Insider SDK as a non-fatal
   /// error report. Fire-and-forget — never re-throws.
+  ///
+  /// The returned future never completes with an error either. Callers do not
+  /// await it, so a rejection would surface as an unhandled zone error in the
+  /// host app — its console, and its crash reporter if one is wired up. That is
+  /// exactly backwards: this path only runs once something has already gone
+  /// wrong inside the plugin, and reporting it must not become a second failure
+  /// the customer sees. Every rejection is swallowed — most often a
+  /// `MissingPluginException` when the channel is not wired up, or a
+  /// `PlatformException` the native handler returns for any throw of its own.
   static Future<void> putException(MethodChannel methodChannel,
       Object exception) async {
-    Map<String, dynamic> args = <String, dynamic>{};
+    try {
+      Map<String, dynamic> args = <String, dynamic>{};
 
-    args["exception"] = exception.toString();
+      // Inside the try as well: a custom exception with a throwing toString()
+      // would otherwise reject the future this doc promises never rejects.
+      args["exception"] = exception.toString();
 
-    await methodChannel.invokeMethod('putException', args);
+      await methodChannel.invokeMethod('putException', args);
+    } catch (_) {
+      // Deliberately swallowed; see the doc comment above.
+    }
   }
 
   static getContentOptimizerMap(String variableName, dynamic defaultValue,

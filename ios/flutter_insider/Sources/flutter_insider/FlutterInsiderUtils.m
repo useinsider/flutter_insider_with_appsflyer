@@ -244,4 +244,53 @@
     return @{@"code": code, @"message": message};
 }
 
+/// Maps an App Frames error onto the camelCase wire vocabulary shared with the Android bridge and
+/// the Dart `InsiderAppFramesErrorCode` enum. The six strings below must stay identical to
+/// `FlutterInsiderUtils.mapAppFramesErrorCode` on Android.
++ (NSString *)mapAppFramesErrorCode:(NSError *)error {
+    if ([error.domain isEqualToString:InsiderAppFramesErrorDomain]) {
+        switch (error.code) {
+            case InsiderAppFramesErrorCodeResolutionFailed: return @"resolutionFailed";
+            case InsiderAppFramesErrorCodeResponseMalformed: return @"responseMalformed";
+            case InsiderAppFramesErrorCodeDownloadingFailed: return @"downloadingFailed";
+            case InsiderAppFramesErrorCodePlacementUntrusted: return @"placementUntrusted";
+            case InsiderAppFramesErrorCodeContentDisplayFailed: return @"contentDisplayFailed";
+            case InsiderAppFramesErrorCodeRenderingFailed: return @"renderingFailed";
+            default: return @"unknown";
+        }
+    }
+    return @"unknown";
+}
+
+/// Maps an App Frames view status onto the lowerCamelCase wire vocabulary shared with the Android
+/// bridge and the Dart `InsiderAppFramesViewStatus` enum. The SDK already provides exactly this
+/// vocabulary, so this defers to it rather than restating the mapping.
++ (NSString *)mapAppFramesStatus:(InsiderAppFramesViewStatus)status {
+    // Passed through verbatim, @"unknown" included: the Dart enum has a matching `unknown` member,
+    // and remapping it to @"detached" here would tell the widget the frame is merely off-window
+    // with its content intact — the one status it deliberately does not collapse on.
+    return InsiderAppFramesViewStatusStringValue(status);
+}
+
++ (NSDictionary *)appFramesErrorToDictionary:(NSError *)error {
+    NSMutableDictionary *dictionary = [NSMutableDictionary dictionaryWithDictionary:@{
+        @"code": [self mapAppFramesErrorCode:error],
+        @"message": error.localizedDescription ?: @"An unexpected error occurred."
+    }];
+
+    // No `dismissCode` here — but not because the SDK lacks one: InsiderAppFramesView.m passes
+    // @{@"dismiss_code": ...} to InsiderAppFramesErrorMake on a non-default template dismissal,
+    // so it is available under error.userInfo. This bridge simply does not forward it yet, and
+    // the Dart model documents the field as populated on Android only for that reason.
+
+    // The SDK stores the originating failure under NSUnderlyingErrorKey, which is the only thing
+    // that says *why* a load failed. Omit the key when there is no deeper cause.
+    id underlying = error.userInfo[NSUnderlyingErrorKey];
+    if ([underlying isKindOfClass:[NSError class]]) {
+        dictionary[@"cause"] = ((NSError *)underlying).localizedDescription;
+    }
+
+    return dictionary;
+}
+
 @end

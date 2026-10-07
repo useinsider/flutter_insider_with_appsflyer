@@ -1,6 +1,8 @@
 #import "FlutterInsiderPlugin.h"
 #import "InsiderIDStreamHandler.h"
+#import "InsiderEventStreamHandler.h"
 #import "FlutterInsiderUtils.h"
+#import "AppFrames/InsiderAppFramesViewFactory.h"
 #import <InsiderHybrid/InsiderHybridMethods.h>
 #import <InsiderHybrid/InsiderHybrid.h>
 #import <InsiderMobile/Insider.h>
@@ -28,6 +30,17 @@ FlutterEventSink mEventSink;
     [registrar addMethodCallDelegate:instance channel:channel];
     [eventChannel setStreamHandler:instance];
     [insiderIDListenerChannel setStreamHandler:insiderIdStreamHandler];
+
+    // Uses the shared instance rather than a fresh object: the SDK holds the
+    // observer weakly, so the handler must be strongly retained elsewhere.
+    FlutterEventChannel* insiderEventListenerChannel = [FlutterEventChannel
+                                                        eventChannelWithName:@"insider_event_listener"
+                                                        binaryMessenger:[registrar messenger]];
+    [insiderEventListenerChannel setStreamHandler:[InsiderEventStreamHandler sharedInstance]];
+
+    InsiderAppFramesViewFactory* appFramesViewFactory =
+        [[InsiderAppFramesViewFactory alloc] initWithMessenger:[registrar messenger]];
+    [registrar registerViewFactory:appFramesViewFactory withId:InsiderAppFramesViewType];
 }
 
 - (NSDictionary *)convertCustomParameters:(NSArray *)params {
@@ -110,6 +123,8 @@ FlutterEventSink mEventSink;
         [self getContentIntWithoutCache:call withResult:result];
     } else if ([call.method isEqualToString:@"getContentBoolWithoutCache"]) {
         [self getContentBoolWithoutCache:call withResult:result];
+    } else if ([call.method isEqualToString:@"markContentOptimizerAsSeen"]) {
+        [self markContentOptimizerAsSeen:call withResult:result];
     } else if ([call.method isEqualToString:REMOVE_INAPP]) {
         [self removeInapp:call withResult:result];
     } else if ([call.method isEqualToString:VISIT_HOME_PAGE]) {
@@ -212,6 +227,8 @@ FlutterEventSink mEventSink;
         result(nil);
     } else if ([call.method isEqualToString:@"setWhatsappOptin"]) {
         [self setWhatsappOptin:call withResult:result];
+    } else if ([call.method isEqualToString:@"setPromotionalOptin"]) {
+        [self setPromotionalOptin:call withResult:result];
     } else if ([call.method isEqualToString:@"signUpConfirmation"]) {
         [self signUpConfirmation:call withResult:result];
     } else if ([call.method isEqualToString:@"setForegroundPushCallback"]) {
@@ -224,6 +241,10 @@ FlutterEventSink mEventSink;
         [self getInsiderID:call withResult:result];
     } else if ([call.method isEqualToString:@"registerInsiderIDListener"]) {
         [self registerInsiderIDListener:call withResult:result];
+    } else if ([call.method isEqualToString:@"registerEventListener"]) {
+        [self registerEventListener:call withResult:result];
+    } else if ([call.method isEqualToString:@"unregisterEventListener"]) {
+        [self unregisterEventListener:call withResult:result];
     } else if ([call.method isEqualToString:@"setPushToken"]) {
         [self setPushToken:call withResult:result];
     } else if ([call.method isEqualToString:@"disableInAppMessages"]) {
@@ -247,6 +268,11 @@ FlutterEventSink mEventSink;
     }
 }
 
+- (NSString *)resolveAppIdentifier:(FlutterMethodCall *)call {
+    id appIdentifier = call.arguments[@"appIdentifier"];
+    return [appIdentifier isKindOfClass:[NSString class]] && [appIdentifier length] > 0 ? appIdentifier : nil;
+}
+
 - (void)initWithLaunchOptions:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try{
         if (!call.arguments[@"partnerName"] || !call.arguments[@"sdkVersion"] || !call.arguments[@"appGroup"]) {
@@ -255,7 +281,12 @@ FlutterEventSink mEventSink;
         }
         [Insider registerInsiderCallbackWithSelector:@selector(registerCallback:) sender:self];
         [Insider setHybridSDKVersion:call.arguments[@"sdkVersion"]];
-        [Insider initWithLaunchOptions:nil partnerName:call.arguments[@"partnerName"] appGroup:call.arguments[@"appGroup"]];
+        NSString *appIdentifier = [self resolveAppIdentifier:call];
+        if (appIdentifier) {
+            [Insider initWithLaunchOptions:nil partnerName:call.arguments[@"partnerName"] appGroup:call.arguments[@"appGroup"] appIdentifier:appIdentifier];
+        } else {
+            [Insider initWithLaunchOptions:nil partnerName:call.arguments[@"partnerName"] appGroup:call.arguments[@"appGroup"]];
+        }
         result(@[]);
     } @catch (NSException *exception){
         [self returnException:exception withResult:result];
@@ -270,7 +301,12 @@ FlutterEventSink mEventSink;
         }
         [Insider registerInsiderCallbackWithSelector:@selector(registerCallback:) sender:self];
         [Insider setHybridSDKVersion:call.arguments[@"sdkVersion"]];
-        [Insider initWithLaunchOptions:nil partnerName:call.arguments[@"partnerName"] appGroup:call.arguments[@"appGroup"] customEndpoint:call.arguments[@"customEndpoint"]];
+        NSString *appIdentifier = [self resolveAppIdentifier:call];
+        if (appIdentifier) {
+            [Insider initWithLaunchOptions:nil partnerName:call.arguments[@"partnerName"] appGroup:call.arguments[@"appGroup"] customEndpoint:call.arguments[@"customEndpoint"] appIdentifier:appIdentifier];
+        } else {
+            [Insider initWithLaunchOptions:nil partnerName:call.arguments[@"partnerName"] appGroup:call.arguments[@"appGroup"] customEndpoint:call.arguments[@"customEndpoint"]];
+        }
         result(@[]);
     } @catch (NSException *exception){
         [self returnException:exception withResult:result];
@@ -487,6 +523,19 @@ FlutterEventSink mEventSink;
         }
         int coResult = [Insider getContentIntWithoutCache:call.arguments[@"variableName"] defaultInt:[call.arguments[@"defaultValue"] intValue] dataType:[call.arguments[@"dataType"] intValue]];
         result([NSNumber numberWithInt:coResult]);
+    } @catch (NSException *e) {
+        [self returnException:e withResult:result];
+    }
+}
+
+- (void)markContentOptimizerAsSeen:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        if (!call.arguments[@"variableName"]) {
+            [self returnInvalidArgs:result];
+            return;
+        }
+        [Insider markContentOptimizerAsSeen:call.arguments[@"variableName"]];
+        result(nil);
     } @catch (NSException *e) {
         [self returnException:e withResult:result];
     }
@@ -1419,6 +1468,19 @@ FlutterEventSink mEventSink;
     }
 }
 
+-(void)setPromotionalOptin:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        if (!call.arguments[@"value"]) {
+            [self returnInvalidArgs:result];
+            return;
+        }
+        [Insider getCurrentUser].setPromotionalOptin([call.arguments[@"value"] boolValue]);
+        result(nil);
+    } @catch (NSException *e) {
+        [self returnException:e withResult:result];
+    }
+}
+
 -(void)signUpConfirmation:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         if (call.arguments[@"customParameters"]) {
@@ -1500,6 +1562,24 @@ FlutterEventSink mEventSink;
 -(void)registerInsiderIDListener:(FlutterMethodCall *) call withResult:(FlutterResult)result {
     @try {
         [Insider registerInsiderIDListenerWithSelector:@selector(insiderIDChangeListener:) sender:self];
+        result(nil);
+    } @catch (NSException *e) {
+        [self returnException:e withResult:result];
+    }
+}
+
+-(void)registerEventListener:(FlutterMethodCall *) call withResult:(FlutterResult)result {
+    @try {
+        [InsiderEventStreamHandler addObserver];
+        result(nil);
+    } @catch (NSException *e) {
+        [self returnException:e withResult:result];
+    }
+}
+
+-(void)unregisterEventListener:(FlutterMethodCall *) call withResult:(FlutterResult)result {
+    @try {
+        [InsiderEventStreamHandler removeObserver];
         result(nil);
     } @catch (NSException *e) {
         [self returnException:e withResult:result];

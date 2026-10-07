@@ -18,5 +18,9 @@
 + (nonnull NSString *)mapAppCardsErrorCode:(nonnull NSError *)error;
 + (nonnull NSDictionary *)appCardsErrorToDictionary:(nonnull NSError *)error;
 
++ (nonnull NSString *)mapAppFramesErrorCode:(nonnull NSError *)error;
++ (nonnull NSDictionary *)appFramesErrorToDictionary:(nonnull NSError *)error;
++ (nonnull NSString *)mapAppFramesStatus:(InsiderAppFramesViewStatus)status;
+
 @end
 
