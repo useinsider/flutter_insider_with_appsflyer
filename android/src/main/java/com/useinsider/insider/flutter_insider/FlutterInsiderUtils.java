@@ -2,6 +2,9 @@ package com.useinsider.insider.flutter_insider;
 
 import com.useinsider.insider.AppCardsException;
 import com.useinsider.insider.Insider;
+import com.useinsider.insider.InsiderAppFramesError;
+import com.useinsider.insider.InsiderAppFramesErrorCode;
+import com.useinsider.insider.InsiderAppFramesViewStatus;
 import com.useinsider.insider.InsiderEvent;
 import com.useinsider.insider.InsiderProduct;
 
@@ -325,6 +328,69 @@ public class FlutterInsiderUtils {
         HashMap<String, Object> map = new HashMap<>();
         map.put("code", error != null ? mapAppCardsExceptionCode(error) : "unknown");
         map.put("message", error != null && error.getMessage() != null ? error.getMessage() : "An unexpected error occurred.");
+        return map;
+    }
+
+    /**
+     * Maps an App Frames error code onto the camelCase wire vocabulary shared with the iOS bridge
+     * and the Dart {@code InsiderAppFramesErrorCode} enum.
+     */
+    public static String mapAppFramesErrorCode(InsiderAppFramesErrorCode code) {
+        if (code == null) return "unknown";
+        switch (code) {
+            case RESOLUTION_FAILED: return "resolutionFailed";
+            case RESPONSE_MALFORMED: return "responseMalformed";
+            case DOWNLOADING_FAILED: return "downloadingFailed";
+            case PLACEMENT_UNTRUSTED: return "placementUntrusted";
+            case CONTENT_DISPLAY_FAILED: return "contentDisplayFailed";
+            case RENDERING_FAILED: return "renderingFailed";
+            default: return "unknown";
+        }
+    }
+
+    /**
+     * Maps an App Frames view status onto the lowerCamelCase wire vocabulary shared with the iOS
+     * bridge (its {@code InsiderAppFramesViewStatusStringValue}) and the Dart
+     * {@code InsiderAppFramesViewStatus} enum.
+     */
+    public static String mapAppFramesStatus(InsiderAppFramesViewStatus status) {
+        // A null or unrecognised status maps to "unknown", never to "detached". `detached` has a
+        // specific meaning on the Dart side — off-window with its content intact — and is the one
+        // status the widget does not collapse on, so using it as the catch-all would park an
+        // unaccountable frame on screen at its last height with nothing reporting it.
+        if (status == null) return "unknown";
+        switch (status) {
+            case DETACHED: return "detached";
+            case NO_PLACEMENT: return "noPlacement";
+            case DISABLED: return "disabled";
+            case RESOLVING: return "resolving";
+            case DOWNLOADING: return "downloading";
+            case RENDERING: return "rendering";
+            case UNAVAILABLE: return "unavailable";
+            case READY: return "ready";
+            case DISMISSED: return "dismissed";
+            case ERROR_RESOLVING: return "errorResolving";
+            case ERROR_DOWNLOADING: return "errorDownloading";
+            case ERROR_RENDERING: return "errorRendering";
+            default: return "unknown";
+        }
+    }
+
+    public static HashMap<String, Object> appFramesErrorToMap(InsiderAppFramesError error) {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("code", error != null ? mapAppFramesErrorCode(error.getCode()) : "unknown");
+        map.put("message", error != null && error.getMessage() != null ? error.getMessage() : "An unexpected error occurred.");
+        // Only a template-reported dismissal carries a dismiss code; omit the key otherwise so the
+        // Dart model can leave it null.
+        if (error != null && error.getDismissCode() != InsiderAppFramesError.NO_DISMISS_CODE) {
+            map.put("dismissCode", error.getDismissCode());
+        }
+        // The SDK wraps the originating failure, which is the only thing that says *why* a load
+        // failed. Omit the key when there is no deeper cause so the Dart model leaves it null.
+        Throwable cause = error != null ? error.getCause() : null;
+        if (cause != null) {
+            map.put("cause", cause.toString());
+        }
         return map;
     }
 }

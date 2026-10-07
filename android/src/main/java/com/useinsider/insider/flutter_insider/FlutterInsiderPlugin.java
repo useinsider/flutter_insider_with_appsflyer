@@ -36,6 +36,7 @@ import com.useinsider.insiderhybrid.constants.InsiderHybridMethods;
 import com.useinsider.insider.CloseButtonPosition;
 import com.useinsider.insider.InsiderIDListener;
 import com.useinsider.insider.flutter_insider.FlutterInsiderUtils;
+import com.useinsider.insider.flutter_insider.appframes.InsiderAppFramesViewFactory;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -64,14 +65,27 @@ import android.os.Bundle;
 
 import java.util.Iterator;
 
-public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.StreamHandler,
-        FlutterPlugin, ActivityAware {
+public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.StreamHandler, 
+    FlutterPlugin, ActivityAware {
 
     private Activity activity;
+    /**
+     * Set when {@code init} ran with no Activity attached, so the hybrid session resume it had to
+     * skip can be issued as soon as one arrives. Without it that resume is lost for the engine's
+     * lifetime: {@code init} runs once, and {@code resumeSessionHybridConfig} has no other caller.
+     */
+    private boolean pendingHybridSessionResume;
     private Context context;
+    /**
+     * Kept from {@code onAttachedToEngine} so the plugin can reach engine-scoped services (the
+     * platform view registry, the binary messenger) after attach.
+     */
+    private FlutterPluginBinding pluginBinding;
     private MethodChannel methodChannel;
     private EventChannel eventChannel;
     private EventChannel.EventSink mEventSink;
+    private EventChannel insiderIDListenerEventChannel;
+    private EventChannel insiderEventListenerEventChannel;
     private InsiderIDListener insiderIDListener;
 
     private boolean isCoreInited = false;
@@ -120,7 +134,12 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
 
     @Override
     public void onAttachedToEngine(FlutterPluginBinding binding) {
+        this.pluginBinding = binding;
         onAttachedToEngine(binding.getApplicationContext(), binding.getBinaryMessenger());
+
+        pluginBinding.getPlatformViewRegistry().registerViewFactory(
+                InsiderAppFramesViewFactory.VIEW_TYPE,
+                new InsiderAppFramesViewFactory(pluginBinding.getBinaryMessenger()));
     }
 
     private void onAttachedToEngine(Context applicationContext, BinaryMessenger messenger) {
@@ -130,18 +149,35 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
         eventChannel.setStreamHandler(this);
         methodChannel.setMethodCallHandler(this);
 
-        EventChannel insiderIDListenerEventChannel =
+        insiderIDListenerEventChannel =
                 new EventChannel(messenger, "insider_id_listener");
         insiderIDListenerEventChannel.setStreamHandler(new InsiderIDStreamHandler());
+
+        insiderEventListenerEventChannel =
+                new EventChannel(messenger, "insider_event_listener");
+        insiderEventListenerEventChannel.setStreamHandler(new InsiderEventStreamHandler());
     }
 
     @Override
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
+        pluginBinding = null;
         context = null;
         methodChannel.setMethodCallHandler(null);
         methodChannel = null;
         eventChannel.setStreamHandler(null);
         eventChannel = null;
+
+        if (insiderIDListenerEventChannel != null) {
+            insiderIDListenerEventChannel.setStreamHandler(null);
+            insiderIDListenerEventChannel = null;
+        }
+
+        if (insiderEventListenerEventChannel != null) {
+            insiderEventListenerEventChannel.setStreamHandler(null);
+            insiderEventListenerEventChannel = null;
+        }
+
+        InsiderEventStreamHandler.dispose();
     }
 
     private void returnInvalidArgs(Result result) {
@@ -155,6 +191,12 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
         result.error(code, message, details);
     }
 
+
+    private String resolveAppIdentifier(MethodCall call) {
+        Object appIdentifier = call.argument(Constants.APP_IDENTIFIER);
+        return appIdentifier instanceof String && !((String) appIdentifier).isEmpty()
+                ? (String) appIdentifier : null;
+    }
 
     private void initSDK(MethodCall call, Result result) {
         try {
@@ -179,10 +221,24 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                 }
             });
 
-            Insider.Instance.init((Application) context.getApplicationContext(), partnerName);
+            String appIdentifier = resolveAppIdentifier(call);
+            if (appIdentifier != null) {
+                Insider.Instance.init((Application) context.getApplicationContext(), partnerName, appIdentifier);
+            } else {
+                Insider.Instance.init((Application) context.getApplicationContext(), partnerName);
+            }
             Insider.Instance.setSDKType("flutter");
             Insider.Instance.setHybridSDKVersion(call.argument("sdkVersion").toString());
-            Insider.Instance.resumeSessionHybridConfig(activity);
+            // `activity` is cleared on activity detach (config change, cached engine, headless
+            // isolate), so init can legitimately run with none attached — a pre-warmed engine
+            // whose Dart entrypoint runs from Application.onCreate reaches here before any
+            // Activity exists. Session resume needs a live one, and handing native a null is
+            // worse than waiting, so record the debt and let the next attach settle it.
+            if (activity != null) {
+                Insider.Instance.resumeSessionHybridConfig(activity);
+            } else {
+                pendingHybridSessionResume = true;
+            }
 
             if (isCoreInited) {
                 Insider.Instance.resumeSessionHybridRequestConfig();
@@ -400,6 +456,15 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                                     (boolean) call.argument(Constants.DEFAULT_VALUE),
                                     (int) call.argument(Constants.DATA_TYPE)));
                     break;
+                case "markContentOptimizerAsSeen":
+                    if (!call.hasArgument(Constants.VARIABLE_NAME)) {
+                        returnInvalidArgs(result);
+                        return;
+                    }
+                    String contentOptimizerVariableName = call.argument(Constants.VARIABLE_NAME).toString();
+                    Insider.Instance.markContentOptimizerAsSeen(contentOptimizerVariableName);
+                    result.success(null);
+                    break;
                 case InsiderHybridMethods.GET_SMART_RECOMMENDATION:
                     if (!call.hasArgument(Constants.RECOMMENDATION_ID) || !call.hasArgument(Constants.LOCALE)
                             || !call.hasArgument(Constants.CURRENCY)) {
@@ -611,7 +676,11 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             getMessageCenterCallback(result));
                     break;
                 case InsiderHybridMethods.REMOVE_INAPP:
-                    Insider.Instance.removeInapp(activity);
+                    // Same reason as the init path: with no Activity attached there is no in-app
+                    // on screen to remove, so this is a no-op rather than a null handed to native.
+                    if (activity != null) {
+                        Insider.Instance.removeInapp(activity);
+                    }
                     result.success(null);
                     break;
                 case InsiderHybridMethods.PUT_EXCEPTION:
@@ -1043,6 +1112,15 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             .setWhatsappOptin(Boolean.parseBoolean(call.argument(Constants.VALUE).toString()));
                     result.success(null);
                     break;
+                case "setPromotionalOptin":
+                    if (!call.hasArgument(Constants.VALUE)) {
+                        returnInvalidArgs(result);
+                        return;
+                    }
+                    Insider.Instance.getCurrentUser()
+                            .setPromotionalOptin(Boolean.parseBoolean(call.argument(Constants.VALUE).toString()));
+                    result.success(null);
+                    break;
                 case "signUpConfirmation":
                     if (call.hasArgument("customParameters")) {
                         Insider.Instance.signUpConfirmation(convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
@@ -1069,6 +1147,21 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
 
                         Insider.Instance.registerInsiderIDListener(insiderIDListener);
                     }
+                    result.success(null);
+                    break;
+                case "registerEventListener":
+                    try {
+                        InsiderEventStreamHandler.addObserver();
+                        result.success(null);
+                    } catch (Exception e) {
+                        // Reported rather than swallowed: Dart rolls its subscribe back on
+                        // this error, and without it the caller would hold a subscription
+                        // that looks live while no observer exists behind it.
+                        result.error(Constants.ERROR, "Failed to register event listener", e.getMessage());
+                    }
+                    break;
+                case "unregisterEventListener":
+                    InsiderEventStreamHandler.removeObserver();
                     result.success(null);
                     break;
                 case "setPushToken":
@@ -1339,20 +1432,34 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
     @Override
     public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
         this.activity = binding.getActivity();
+        resumePendingHybridSession();
     }
 
     @Override
     public void onDetachedFromActivityForConfigChanges() {
-
+        this.activity = null;
     }
 
     @Override
     public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding binding) {
-
+        this.activity = binding.getActivity();
+        resumePendingHybridSession();
     }
 
     @Override
     public void onDetachedFromActivity() {
+        this.activity = null;
+    }
 
+    /**
+     * Issues the hybrid session resume {@code init} had to skip for want of an Activity.
+     *
+     * <p>Cleared before the call rather than after, so a throw from native cannot leave the flag
+     * set and have every later attach retry it.
+     */
+    private void resumePendingHybridSession() {
+        if (!pendingHybridSessionResume || activity == null) return;
+        pendingHybridSessionResume = false;
+        Insider.Instance.resumeSessionHybridConfig(activity);
     }
 }

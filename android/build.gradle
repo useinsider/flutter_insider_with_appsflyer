@@ -1,5 +1,5 @@
 group 'com.useinsider.insider.flutter_insider'
-version '5.2.0+nh-SNAPSHOT'
+version '5.3.0+nh-SNAPSHOT'
 
 buildscript {
     repositories {
@@ -32,6 +32,10 @@ android {
     lintOptions {
         disable 'InvalidPackage'
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 
     def gradleVersion = gradle.gradleVersion.tokenize('.')
     def major = gradleVersion[0].toInteger()
@@ -52,6 +56,10 @@ dependencies {
     implementation 'com.google.android.play:review:2.0.1'
 
     implementation 'com.appsflyer:af-android-sdk:6.14.0'
-    implementation 'com.useinsider:insider:16.0.9-nh'
-    implementation 'com.useinsider:insiderhybrid:1.3.4'
+    // App Frames requires androidx.webkit at runtime. The Insider SDK declares it `compileOnly`
+    // (it guards for absence and silently degrades), so the consumer must provide it.
+    implementation 'androidx.webkit:webkit:1.16.0'
+
+    implementation 'com.useinsider:insider:17.3.0-nh'
+    implementation 'com.useinsider:insiderhybrid:1.4.0'
 }

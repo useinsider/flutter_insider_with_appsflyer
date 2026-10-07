@@ -168,6 +168,19 @@ class FlutterInsiderUser {
     return this;
   }
 
+  /// Records the user's promotional opt-in consent (Mobile Promotional
+  /// Consent). Stored at the user (profile) level and synced to UCD for push
+  /// targeting. When never set, the user is treated as not opted in.
+  FlutterInsiderUser setPromotionalOptin(bool promotionalOptin) {
+    try {
+      _setUserAttribute(
+          Constants.SET_PROMOTIONAL_OPTIN, promotionalOptin.toString());
+    } catch (Exception) {
+      FlutterInsiderUtils.putException(_channel, Exception);
+    }
+    return this;
+  }
+
   /// Sets the user's email address.
   FlutterInsiderUser setEmail(String email) {
     try {

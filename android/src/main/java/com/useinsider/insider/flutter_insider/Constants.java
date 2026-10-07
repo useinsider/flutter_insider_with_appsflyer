@@ -21,4 +21,5 @@ class Constants {
     static final String START_DATE = "startDate";
     static final String END_DATE = "endDate";
     static final String LIMIT = "limit";
+    static final String APP_IDENTIFIER = "appIdentifier";
 }

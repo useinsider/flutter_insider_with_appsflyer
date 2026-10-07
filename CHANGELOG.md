@@ -577,3 +577,60 @@
 ## 5.2.0+nh
 
 * iOS SDK updated. (iOS: 15.2.0)
+
+## Unreleased
+
+* App Frames: `InsiderAppFramesView` widget with auto-height, a typed error model and
+  action callbacks.
+* App Frames: the frame's content lifecycle is reported through
+  `onStatusChanged(status, previousStatus)` and the `InsiderAppFramesViewStatus` enum,
+  matching the native SDKs' own status taxonomy.
+* App Frames: `InsiderAppFramesViewStatus.unknown` — a status reported by a native SDK newer
+  than this plugin. The widget collapses the frame on it rather than leaving a stale
+  template's height reserved, and `InsiderAppFramesViewStatus` is additive, so give any
+  `switch` over it a `default` clause.
+* App Frames: `disabled` now collapses the frame like the other content-gone statuses,
+  matching both native SDKs. Previously the widget kept the last reported height.
+* App Frames: `InsiderAppFramesError.cause` carries the originating failure the native
+  SDKs wrap (Android `Throwable.getCause`, iOS `NSUnderlyingErrorKey`), which is often the
+  only thing that says *why* a frame failed to load.
+* App Frames is a partner opt-in and stays dormant until the host app enables it:
+  `com.useinsider.insider.APP_FRAMES_ENABLED` meta-data on Android, and the
+  `App Frames Enabled` boolean inside the `Insider` dictionary in `Info.plist` on iOS.
+* **BREAKING**: minimum supported Flutter version raised to 3.0.0. App Frames embeds its
+  native view with `PlatformViewsService.initExpensiveAndroidView`, added in Flutter 3.0.
+* Android: the plugin now depends on `androidx.webkit`. App Frames needs it at runtime and the
+  native Insider SDK declares it `compileOnly`.
+* Android & iOS SDK updated. (Android: 17.3.0, Android Hybrid: 1.4.0, iOS: 16.2.0, iOS Hybrid: 1.8.0)
+* **BREAKING**: CocoaPods iOS deployment target raised to 12.2, the floor of `InsiderMobile`
+  16.2.0 and `InsiderHybrid` 1.8.0. Swift Package Manager stays at 12.0.
+
+## 5.3.0
+
+* **BREAKING**: Minimum supported Flutter version raised to 3.0.0. App Frames uses `PlatformViewsService.initExpensiveAndroidView`, added in Flutter 3.0.
+* **BREAKING**: CocoaPods iOS deployment target raised to 12.2, matching `InsiderMobile` 16.2.0 and `InsiderHybrid` 1.8.0. Swift Package Manager stays at 12.0.
+* Added `InsiderAppFramesView` widget with auto-height, a typed error model, and action callbacks.
+* App Frames content lifecycle is reported through `onStatusChanged(status, previousStatus)` and the `InsiderAppFramesViewStatus` enum.
+* Added `InsiderAppFramesViewStatus.unknown` for statuses reported by a newer native SDK; the widget collapses the frame on unknown statuses.
+* Fixed `disabled` status to collapse the App Frame, matching both native SDKs.
+* `InsiderAppFramesError.cause` now exposes the originating failure wrapped by the native SDKs.
+* App Frames is a partner opt-in; enable via `com.useinsider.insider.APP_FRAMES_ENABLED` meta-data on Android or `App Frames Enabled` in `Info.plist` on iOS.
+* Android: the plugin now depends on `androidx.webkit` for App Frames runtime support.
+* Added optional `app` parameter to `init` and `initWithCustomEndpoint` to forward an app identifier to native SDKs.
+* Fixed App Frames compilation on both CocoaPods and SwiftPM channels.
+* Android & iOS SDK updated. (Android: 17.3.0, Android Hybrid: 1.4.0, iOS: 16.2.0, iOS Hybrid: 1.8.0)
+
+## 5.3.0+nh
+
+* **BREAKING**: Minimum supported Flutter version raised to 3.0.0. App Frames uses `PlatformViewsService.initExpensiveAndroidView`, added in Flutter 3.0.
+* **BREAKING**: CocoaPods iOS deployment target raised to 12.2, matching `InsiderMobile` 16.2.0 and `InsiderHybrid` 1.8.0. Swift Package Manager stays at 12.0.
+* Added `InsiderAppFramesView` widget with auto-height, a typed error model, and action callbacks.
+* App Frames content lifecycle is reported through `onStatusChanged(status, previousStatus)` and the `InsiderAppFramesViewStatus` enum.
+* Added `InsiderAppFramesViewStatus.unknown` for statuses reported by a newer native SDK; the widget collapses the frame on unknown statuses.
+* Fixed `disabled` status to collapse the App Frame, matching both native SDKs.
+* `InsiderAppFramesError.cause` now exposes the originating failure wrapped by the native SDKs.
+* App Frames is a partner opt-in; enable via `com.useinsider.insider.APP_FRAMES_ENABLED` meta-data on Android or `App Frames Enabled` in `Info.plist` on iOS.
+* Android: the plugin now depends on `androidx.webkit` for App Frames runtime support.
+* Added optional `app` parameter to `init` and `initWithCustomEndpoint` to forward an app identifier to native SDKs.
+* Fixed App Frames compilation on both CocoaPods and SwiftPM channels.
+* Android & iOS SDK updated. (Android: 17.3.0, Android Hybrid: 1.4.0, iOS: 16.2.0, iOS Hybrid: 1.8.0)

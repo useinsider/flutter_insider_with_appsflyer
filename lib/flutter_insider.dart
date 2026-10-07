@@ -1,8 +1,8 @@
 /// Flutter plugin for the Insider mobile SDK.
 ///
 /// Exposes Insider's user tracking, product events, push notifications,
-/// smart recommendations, content optimizer, message center and App Cards
-/// features to Flutter apps via platform channels.
+/// smart recommendations, content optimizer, message center, App Cards and
+/// App Frames features to Flutter apps via platform channels.
 ///
 /// Entry point: [FlutterInsider.Instance]. Initialise the SDK once during
 /// app startup with [FlutterInsider.init], then use the facade methods to
@@ -21,10 +21,18 @@ import 'src/utils.dart';
 import 'src/constants.dart';
 import 'enum/InsiderCloseButtonPosition.dart';
 import 'src/identifiers.dart';
+import 'src/insider_event_listener.dart';
 
 export 'src/insider_app_cards.dart';
 export 'src/app_cards_models.dart';
 export 'src/app_cards_error.dart';
+
+export 'src/insider_event_listener.dart';
+
+export 'src/app_frames/insider_app_frames_view.dart';
+export 'src/app_frames/insider_app_frames_error.dart';
+export 'src/app_frames/insider_app_frames_status.dart'
+    show InsiderAppFramesViewStatus, InsiderAppFramesViewStatusX;
 
 /// Singleton facade over the native Insider SDK.
 ///
@@ -36,27 +44,34 @@ class FlutterInsider {
   InsiderCloseButtonPosition closeButtonPosition = InsiderCloseButtonPosition();
   static FlutterInsiderUser? _insiderUser;
   static FlutterInsiderAppCards? _insiderAppCards;
-  static const MethodChannel _channel = const MethodChannel('flutter_insider');
-  static const EventChannel _eventChannel = const EventChannel(
-    'flutter_insider_event',
-  );
-  static const EventChannel _insiderIDListener = const EventChannel(
-    'insider_id_listener',
-  );
+  static FlutterInsiderEvents? _insiderEvents;
+  static const MethodChannel _channel =
+      const MethodChannel(Constants.CHANNEL_NAME);
+  static const EventChannel _eventChannel =
+      const EventChannel(Constants.EVENT_CHANNEL_NAME);
+  static const EventChannel _insiderIDListener =
+      const EventChannel(Constants.ID_LISTENER_CHANNEL_NAME);
 
+  /// Sends the init call to native; prefer [init] or [initWithCustomEndpoint].
   Future<void> initFlutterBase(
     String partnerName,
     String appGroup,
-    String? customEndpoint,
-  ) async {
+    String? customEndpoint, {
+    String? appIdentifier,
+  }) async {
     _insiderUser = new FlutterInsiderUser(_channel);
     _insiderAppCards = new FlutterInsiderAppCards(_channel);
+    _insiderEvents = new FlutterInsiderEvents(_channel);
 
     Map<String, dynamic> args = <String, dynamic>{};
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-5.2.0+nh";
+    args["sdkVersion"] = "F-5.3.0+nh";
+
+    if (appIdentifier != null && appIdentifier.isNotEmpty) {
+      args[Constants.APP_IDENTIFIER] = appIdentifier;
+    }
 
     if (customEndpoint != null) {
       args["customEndpoint"] = customEndpoint;
@@ -95,14 +110,20 @@ class FlutterInsider {
   /// The callback receives `(int actionType, dynamic data)`; switch on the
   /// constants in [InsiderCallbackAction] to handle each kind. Call once
   /// during app startup.
+  ///
+  /// Pass [appIdentifier] to identify which of the partner's apps this is; it
+  /// must match `^[a-z0-9][a-z0-9_]{0,49}$`, otherwise native logs it and inits
+  /// without it. A null or empty [appIdentifier] is ignored.
   Future<void> init(
     String partnerName,
     String appGroup,
-    Function function,
-  ) async {
+    Function function, {
+    String? appIdentifier,
+  }) async {
     try {
       registerEventChannel(function, Constants.CALLBACK_EVENT);
-      await initFlutterBase(partnerName, appGroup, null);
+      await initFlutterBase(partnerName, appGroup, null,
+          appIdentifier: appIdentifier);
     } catch (e) {
       await FlutterInsiderUtils.putException(_channel, e);
     }
@@ -112,14 +133,17 @@ class FlutterInsider {
   /// staging gateway).
   ///
   /// Use only when instructed by Insider. Otherwise prefer [init].
+  /// [appIdentifier] behaves as in [init].
   Future<void> initWithCustomEndpoint(
     String partnerName,
     String appGroup,
     String customEndpoint,
-    Function function,
-  ) async {
+    Function function, {
+    String? appIdentifier,
+  }) async {
     try {
-      await initFlutterBase(partnerName, appGroup, customEndpoint);
+      await initFlutterBase(partnerName, appGroup, customEndpoint,
+          appIdentifier: appIdentifier);
       registerEventChannel(function, Constants.CALLBACK_EVENT);
     } catch (e) {
       await FlutterInsiderUtils.putException(_channel, e);
@@ -406,6 +430,26 @@ class FlutterInsider {
     } catch (Exception) {
       await FlutterInsiderUtils.putException(_channel, Exception);
       return defaultValue;
+    }
+  }
+
+  /// Marks the given Content Optimizer variable as seen, firing the
+  /// `cont_opt_seen` event. Fire-and-forget; other guards are handled natively.
+  ///
+  /// [variableName] is the Content Optimizer variable defined in the Insider
+  /// panel. A blank name is ignored on both platforms.
+  Future<void> markContentOptimizerAsSeen(String variableName) async {
+    try {
+      if (variableName.trim().isEmpty) return;
+
+      Map<String, dynamic> args = <String, dynamic>{};
+      args["variableName"] = variableName;
+      await _channel.invokeMethod(
+        Constants.MARK_CONTENT_OPTIMIZER_AS_SEEN,
+        args,
+      );
+    } catch (e) {
+      await FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
@@ -830,6 +874,14 @@ class FlutterInsider {
     return _insiderAppCards!;
   }
 
+  /// Entry point for the event listener API. See [FlutterInsiderEvents].
+  FlutterInsiderEvents get events {
+    if (_insiderEvents == null) {
+      _insiderEvents = new FlutterInsiderEvents(_channel);
+    }
+    return _insiderEvents!;
+  }
+
   Future<List?> getMessageCenterDataWithIdentifiers(
     DateTime startDate,
     DateTime endDate,
@@ -893,7 +945,8 @@ class FlutterInsider {
   }
 
   /// Re-initialises the SDK against a different [newPartnerName]. Use sparingly
-  /// — typically only in apps that switch tenants at runtime.
+  /// — typically only in apps that switch tenants at runtime. A different
+  /// [newPartnerName] clears the app identifier set via [init]; the same name keeps it.
   Future<void> reinitWithPartnerName(String newPartnerName) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
