@@ -1,0 +1,4 @@
+{
+  "$schema": "https://panel-assets.useinsider.com/pr-linter/schema.json",
+  "extends": ["smokePass", "testPass"]
+}
