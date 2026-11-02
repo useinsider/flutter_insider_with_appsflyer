@@ -74,6 +74,12 @@ class Constants {
   static const String SET_CUSTOM_ATTRIBUTE_WITH_ARRAY =
       "setCustomAttributeWithArray";
   static const String UNSET_CUSTOM_ATTRIBUTE = "unsetCustomAttribute";
+  static const String ADD_OBJECTS_TO_CUSTOM_ATTRIBUTE =
+      "addObjectsToCustomAttribute";
+  static const String MERGE_OBJECTS_IN_CUSTOM_ATTRIBUTE =
+      "mergeObjectsInCustomAttribute";
+  static const String REMOVE_OBJECTS_FROM_CUSTOM_ATTRIBUTE =
+      "removeObjectsFromCustomAttribute";
   static const String LOGIN = "login";
   static const String LOGOUT = "logout";
   static const String LOGOUT_RESETTING_INSIDER_ID = "logoutResettingInsiderID";

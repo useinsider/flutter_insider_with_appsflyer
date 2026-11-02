@@ -26,6 +26,9 @@ import 'src/insider_event_listener.dart';
 export 'src/insider_app_cards.dart';
 export 'src/app_cards_models.dart';
 export 'src/app_cards_error.dart';
+export 'enum/InsiderAppCardType.dart';
+export 'enum/InsiderAppCardActionType.dart';
+export 'enum/InsiderAppCardDeeplinkType.dart';
 
 export 'src/insider_event_listener.dart';
 
@@ -67,7 +70,7 @@ class FlutterInsider {
 
     args["appGroup"] = appGroup;
     args["partnerName"] = partnerName;
-    args["sdkVersion"] = "F-5.3.0+nh";
+    args["sdkVersion"] = "F-5.5.0+nh";
 
     if (appIdentifier != null && appIdentifier.isNotEmpty) {
       args[Constants.APP_IDENTIFIER] = appIdentifier;
@@ -501,6 +504,11 @@ class FlutterInsider {
     Map<String, Object>? customParameters,
   }) async {
     try {
+      if (!product.hasSendablePrice) {
+        FlutterInsiderUtils.warnUnsendablePrice('visitProductDetailPage',
+            product.requiredFields['product_id'].toString());
+        return;
+      }
       Map<String, dynamic> args = <String, dynamic>{};
       args['requiredFields'] = product.requiredFields;
       args['optionalFields'] = product.optionalFields;
@@ -517,15 +525,27 @@ class FlutterInsider {
 
   /// Records a cart page visit with the current cart [products] and an
   /// optional [saleID] correlating the cart to a downstream purchase.
+  ///
+  /// Products whose price is NaN or infinite are left out. The call still
+  /// reaches native when none remain, because native closes a product page
+  /// in-app on every cart and wishlist page visit.
   Future<void> visitCartPage(
     List<FlutterInsiderProduct> products, {
     String? saleID,
     Map<String, Object>? customParameters,
   }) async {
     try {
+      FlutterInsiderUtils.warnUnsendableProducts(
+        'visitCartPage',
+        products
+            .where((p) => !p.hasSendablePrice)
+            .map((p) => p.requiredFields['product_id'].toString())
+            .toList(),
+      );
+      final sendable = products.where((product) => product.hasSendablePrice);
       var list = List<Map>.filled(0, <String, dynamic>{}, growable: true);
       Map<String, dynamic> args = <String, dynamic>{};
-      for (var product in products) {
+      for (var product in sendable) {
         Map<String, dynamic> map = <String, dynamic>{};
         map['requiredFields'] = product.requiredFields;
         map['optionalFields'] = product.optionalFields;
@@ -547,14 +567,26 @@ class FlutterInsider {
   }
 
   /// Records a wishlist page visit with the current wishlist [products].
+  ///
+  /// Products whose price is NaN or infinite are left out. The call still
+  /// reaches native when none remain, because native closes a product page
+  /// in-app on every cart and wishlist page visit.
   Future<void> visitWishlistPage(
     List<FlutterInsiderProduct> products, {
     Map<String, Object>? customParameters,
   }) async {
     try {
+      FlutterInsiderUtils.warnUnsendableProducts(
+        'visitWishlistPage',
+        products
+            .where((p) => !p.hasSendablePrice)
+            .map((p) => p.requiredFields['product_id'].toString())
+            .toList(),
+      );
+      final sendable = products.where((product) => product.hasSendablePrice);
       var list = List<Map>.filled(0, <String, dynamic>{}, growable: true);
       Map<String, dynamic> args = <String, dynamic>{};
-      for (var product in products) {
+      for (var product in sendable) {
         Map<String, dynamic> map = <String, dynamic>{};
         map['requiredFields'] = product.requiredFields;
         map['optionalFields'] = product.optionalFields;
@@ -612,6 +644,11 @@ class FlutterInsider {
     Map<String, Object>? customParameters,
   }) async {
     try {
+      if (!product.hasSendablePrice) {
+        FlutterInsiderUtils.warnUnsendablePrice(
+            'itemPurchased', product.requiredFields['product_id'].toString());
+        return;
+      }
       Map<String, dynamic> args = <String, dynamic>{};
       args['uniqueSaleID'] = uniqueSaleID;
       args['requiredFields'] = product.requiredFields;
@@ -633,6 +670,11 @@ class FlutterInsider {
     Map<String, Object>? customParameters,
   }) async {
     try {
+      if (!product.hasSendablePrice) {
+        FlutterInsiderUtils.warnUnsendablePrice(
+            'itemAddedToCart', product.requiredFields['product_id'].toString());
+        return;
+      }
       Map<String, dynamic> args = <String, dynamic>{};
       args['requiredFields'] = product.requiredFields;
       args['optionalFields'] = product.optionalFields;
@@ -689,6 +731,11 @@ class FlutterInsider {
     Map<String, Object>? customParameters,
   }) async {
     try {
+      if (!product.hasSendablePrice) {
+        FlutterInsiderUtils.warnUnsendablePrice('itemAddedToWishlist',
+            product.requiredFields['product_id'].toString());
+        return;
+      }
       Map<String, dynamic> args = <String, dynamic>{};
       args['requiredFields'] = product.requiredFields;
       args['optionalFields'] = product.optionalFields;
@@ -767,12 +814,22 @@ class FlutterInsider {
     }
   }
 
+  /// Fetches a Smart Recommendation for [product].
+  ///
+  /// Returns `null` on failure, and without calling native when the price of
+  /// [product] is NaN or infinite.
   Future<Map?> getSmartRecommendationWithProduct(
     FlutterInsiderProduct product,
     int recommendationID,
     String locale,
   ) async {
     try {
+      if (!product.hasSendablePrice) {
+        FlutterInsiderUtils.warnUnsendablePrice(
+            'getSmartRecommendationWithProduct',
+            product.requiredFields['product_id'].toString());
+        return null;
+      }
       Map<String, dynamic> args = <String, dynamic>{};
       args['recommendationID'] = recommendationID;
       args['locale'] = locale;
@@ -818,11 +875,19 @@ class FlutterInsider {
     }
   }
 
+  /// Records a click on a Smart Recommendation [product]. Nothing is sent
+  /// when its price is NaN or infinite.
   Future<void> clickSmartRecommendationProduct(
     int recommendationID,
     FlutterInsiderProduct product,
   ) async {
     try {
+      if (!product.hasSendablePrice) {
+        FlutterInsiderUtils.warnUnsendablePrice(
+            'clickSmartRecommendationProduct',
+            product.requiredFields['product_id'].toString());
+        return;
+      }
       Map<String, dynamic> args = <String, dynamic>{};
       args['recommendationID'] = recommendationID;
       args['requiredFields'] = product.requiredFields;
@@ -840,8 +905,9 @@ class FlutterInsider {
   /// Fetches Message Center entries dated between [startDate] and [endDate],
   /// up to [limit] items.
   ///
-  /// Returns an empty list if `startDate >= endDate`. Returns `null` on
-  /// failure.
+  /// Returns an empty list if `startDate >= endDate`. A native SDK failure is
+  /// reported by the SDK and answered with an empty result, not `null`;
+  /// `null` is returned only when the platform call itself fails.
   Future<List?> getMessageCenterData(
     DateTime startDate,
     DateTime endDate,
@@ -998,18 +1064,24 @@ class FlutterInsider {
   }
 
   /// Suppresses in-app messages until [enableInAppMessages] is called.
-  void disableInAppMessages() {
+  ///
+  /// The returned [Future] completes when the native SDK call has returned.
+  /// Errors are reported to the native SDK and never thrown.
+  Future<void> disableInAppMessages() async {
     try {
-      _channel.invokeMethod(Constants.DISABLE_IN_APP_MESSAGES);
+      await _channel.invokeMethod(Constants.DISABLE_IN_APP_MESSAGES);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
   }
 
   /// Re-enables in-app messages after a previous [disableInAppMessages].
-  void enableInAppMessages() {
+  ///
+  /// The returned [Future] completes when the native SDK call has returned.
+  /// Errors are reported to the native SDK and never thrown.
+  Future<void> enableInAppMessages() async {
     try {
-      _channel.invokeMethod(Constants.ENABLE_IN_APP_MESSAGES);
+      await _channel.invokeMethod(Constants.ENABLE_IN_APP_MESSAGES);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
@@ -1019,11 +1091,14 @@ class FlutterInsider {
   ///
   /// Call from your `onLink` / `onAppLink` handler to route Insider campaign
   /// links correctly.
-  void handleUniversalLink(String url) {
+  ///
+  /// The returned [Future] completes when the native SDK call has returned.
+  /// Errors are reported to the native SDK and never thrown.
+  Future<void> handleUniversalLink(String url) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
       args['universalLink'] = url;
-      _channel.invokeMethod(Constants.HANDLE_UNIVERSAL_LINK, args);
+      await _channel.invokeMethod(Constants.HANDLE_UNIVERSAL_LINK, args);
     } catch (Exception) {
       FlutterInsiderUtils.putException(_channel, Exception);
     }
