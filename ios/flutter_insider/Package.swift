@@ -19,7 +19,6 @@ let package = Package(
             dependencies: [
                 .product(name: "InsiderMobile", package: "Insider-iOS-SDK"),
                 .product(name: "InsiderGeofence", package: "Insider-iOS-SDK"),
-                .product(name: "InsiderHybrid", package: "Insider-iOS-SDK"),
                 .product(name: "InsiderMobileAdvancedNotification", package: "Insider-iOS-SDK")
             ],
             cSettings: [

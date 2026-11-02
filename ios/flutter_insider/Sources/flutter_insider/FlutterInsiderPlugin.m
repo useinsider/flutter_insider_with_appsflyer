@@ -3,10 +3,61 @@
 #import "InsiderEventStreamHandler.h"
 #import "FlutterInsiderUtils.h"
 #import "AppFrames/InsiderAppFramesViewFactory.h"
-#import <InsiderHybrid/InsiderHybridMethods.h>
-#import <InsiderHybrid/InsiderHybrid.h>
 #import <InsiderMobile/Insider.h>
 #import <InsiderGeofence/InsiderGeofence.h>
+
+static NSString *const INIT_WITH_LAUNCH_OPTIONS = @"initWithLaunchOptions";
+static NSString *const INIT_WITH_CUSTOM_ENDPOINT = @"initWithCustomEndpoint";
+static NSString *const REGISTER_WITH_QUIET_PERMISSION = @"registerWithQuietPermission";
+static NSString *const HANDLE_NOTIFICATION = @"handleNotification";
+static NSString *const START_TRACKING_GEOFENCE = @"startTrackingGeofence";
+static NSString *const SET_ALLOWS_BACKGROUND_LOCATION_UPDATES = @"setAllowsBackgroundLocationUpdates";
+static NSString *const SET_GDPR_CONSENT = @"setGDPRConsent";
+static NSString *const ENABLE_IDFA_COLLECTION = @"enableIDFACollection";
+static NSString *const GET_CONTENT_STRING_WITH_NAME = @"getContentStringWithName";
+static NSString *const GET_CONTENT_INT_WITH_NAME = @"getContentIntWithName";
+static NSString *const GET_CONTENT_BOOL_WITH_NAME = @"getContentBoolWithName";
+static NSString *const REMOVE_INAPP = @"removeInapp";
+static NSString *const VISIT_HOME_PAGE = @"visitHomePage";
+static NSString *const VISIT_LISTING_PAGE = @"visitListingPage";
+static NSString *const VISIT_PRODUCT_DETAIL_PAGE = @"visitProductDetailPage";
+static NSString *const VISIT_CART_PAGE = @"visitCartPage";
+static NSString *const ITEM_PURCHASED = @"itemPurchased";
+static NSString *const ITEM_ADDED_TO_CART = @"itemAddedToCart";
+static NSString *const ITEM_REMOVED_FROM_CART = @"itemRemovedFromCart";
+static NSString *const CART_CLEARED = @"cartCleared";
+static NSString *const SET_CUSTOM_ENDPOINT = @"setCustomEndpoint";
+static NSString *const GET_SMART_RECOMMENDATION = @"getSmartRecommendation";
+static NSString *const GET_SMART_RECOMMENDATION_WITH_PRODUCT = @"getSmartRecommendationWithProduct";
+static NSString *const CLICK_SMART_RECOMMENDATION_PRODUCT = @"clickSmartRecommendationProduct";
+static NSString *const GET_MESSAGE_CENTER_DATA = @"getMessageCenterData";
+static NSString *const TAG_EVENT = @"tagEvent";
+static NSString *const SET_GENDER = @"setGender";
+static NSString *const SET_BIRTHDAY = @"setBirthday";
+static NSString *const SET_NAME = @"setName";
+static NSString *const SET_SURNAME = @"setSurname";
+static NSString *const SET_AGE = @"setAge";
+static NSString *const SET_SMS_OPTIN = @"setSMSOptin";
+static NSString *const SET_EMAIL_OPTIN = @"setEmailOptin";
+static NSString *const SET_PUSH_OPTIN = @"setPushOptin";
+static NSString *const SET_LOCATION_OPTIN = @"setLocationOptin";
+static NSString *const SET_LANGUAGE = @"setLanguage";
+static NSString *const SET_LOCALE = @"setLocale";
+static NSString *const SET_FACEBOOK_ID = @"setFacebookID";
+static NSString *const SET_TWITTER_ID = @"setTwitterID";
+static NSString *const SET_CUSTOM_ATTRIBUTE_WITH_STRING = @"setCustomAttributeWithString";
+static NSString *const SET_CUSTOM_ATTRIBUTE_WITH_INT = @"setCustomAttributeWithInt";
+static NSString *const SET_CUSTOM_ATTRIBUTE_WITH_DOUBLE = @"setCustomAttributeWithDouble";
+static NSString *const SET_CUSTOM_ATTRIBUTE_WITH_BOOLEAN = @"setCustomAttributeWithBoolean";
+static NSString *const SET_CUSTOM_ATTRIBUTE_WITH_DATE = @"setCustomAttributeWithDate";
+static NSString *const SET_CUSTOM_ATTRIBUTE_WITH_ARRAY = @"setCustomAttributeWithArray";
+static NSString *const UNSET_CUSTOM_ATTRIBUTE = @"unsetCustomAttribute";
+static NSString *const LOGIN = @"login";
+static NSString *const LOGOUT = @"logout";
+static NSString *const ADD_EMAIL = @"addEmail";
+static NSString *const ADD_PHONE_NUMBER = @"addPhoneNumber";
+static NSString *const ADD_USER_ID = @"addUserID";
+static NSString *const PUT_EXCEPTION = @"putException";
 
 int INVALID_DATA_TYPE = -1;
 FlutterEventSink mEventSink;
@@ -43,33 +94,26 @@ FlutterEventSink mEventSink;
     [registrar registerViewFactory:appFramesViewFactory withId:InsiderAppFramesViewType];
 }
 
-- (NSDictionary *)convertCustomParameters:(NSArray *)params {
-    if (!params) return nil;
-    NSMutableDictionary *converted = [NSMutableDictionary dictionary];
-    for (id item in params) {
-        if (![item isKindOfClass:[NSDictionary class]]) continue;
-        NSDictionary *parameter = (NSDictionary *)item;
-        NSString *type = parameter[@"type"];
-        NSString *key  = parameter[@"key"];
-        if (![type isKindOfClass:[NSString class]] || ![key isKindOfClass:[NSString class]]) continue;
-        id value = parameter[@"value"];
-        if ([type isEqualToString:@"string"] && [value isKindOfClass:[NSString class]]) {
-            converted[key] = value;
-        } else if (([type isEqualToString:@"integer"] || [type isEqualToString:@"double"] || [type isEqualToString:@"boolean"]) && [value isKindOfClass:[NSNumber class]]) {
-            converted[key] = value;
-        } else if ([type isEqualToString:@"date"] && [value isKindOfClass:[NSNumber class]]) {
-            long long epochMillis = [(NSNumber *)value longLongValue];
-            NSDate *dateValue = [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)epochMillis / 1000.0];
-            converted[key] = dateValue;
-        } else if (([type isEqualToString:@"string_array"] || [type isEqualToString:@"numeric_array"]) && [value isKindOfClass:[NSArray class]]) {
-            converted[key] = value;
-        }
-    }
-    return converted;
-}
-
 - (void)returnInvalidArgs:(FlutterResult)result {
     result([FlutterError errorWithCode:@"INVALID_ARGS" message:@"Missing required arguments" details:nil]);
+}
+
+/// Rejects a merge/remove whose match lost an entry while being converted.
+/// The generic "missing arguments" error is wrong here - the arguments are all
+/// present - and it is what the Dart layer prints to the developer.
+- (void)returnLossyMatch:(FlutterResult)result {
+    [self returnInvalidArgs:result
+                   withCode:@"INVALID_MATCH"
+                    message:@"The match lost an entry while being converted, so the call was not sent. A narrowed match would affect more objects than requested."];
+}
+
+/// Rejects a login whose identifier set is present but carries nothing to
+/// identify the user with, which the generic "missing arguments" error would
+/// describe wrongly.
+- (void)returnEmptyIdentifiers:(FlutterResult)result {
+    [self returnInvalidArgs:result
+                   withCode:@"INVALID_IDENTIFIERS"
+                    message:@"The identifier set is empty, so there is nothing to identify the user with."];
 }
 
 - (void)returnInvalidArgs:(FlutterResult)result withCode:(NSString *)code message:(NSString *)message {
@@ -215,6 +259,12 @@ FlutterEventSink mEventSink;
         [self setCustomAttributeWithArray:call withResult:result];
     } else if ([call.method isEqualToString:UNSET_CUSTOM_ATTRIBUTE]) {
         [self unsetCustomAttribute:call withResult:result];
+    } else if ([call.method isEqualToString:@"addObjectsToCustomAttribute"]) {
+        [self addObjectsToCustomAttribute:call withResult:result];
+    } else if ([call.method isEqualToString:@"mergeObjectsInCustomAttribute"]) {
+        [self mergeObjectsInCustomAttribute:call withResult:result];
+    } else if ([call.method isEqualToString:@"removeObjectsFromCustomAttribute"]) {
+        [self removeObjectsFromCustomAttribute:call withResult:result];
     } else if ([call.method isEqualToString:LOGIN]) {
         [self login:call withResult:result];
     } else if ([call.method isEqualToString:LOGOUT]) {
@@ -553,7 +603,7 @@ FlutterEventSink mEventSink;
 - (void)visitHomePage:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         if (call.arguments[@"customParameters"]) {
-            [Insider visitHomepageWithCustomParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider visitHomepageWithCustomParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider visitHomepage];
         }
@@ -570,7 +620,7 @@ FlutterEventSink mEventSink;
             return;
         }
         if (call.arguments[@"customParameters"]) {
-            [Insider visitListingPageWithTaxonomy:call.arguments[@"taxonomy"] customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider visitListingPageWithTaxonomy:call.arguments[@"taxonomy"] customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider visitListingPageWithTaxonomy:call.arguments[@"taxonomy"]];
         }
@@ -591,7 +641,7 @@ FlutterEventSink mEventSink;
         NSArray *productCustomParameters = call.arguments[@"productCustomParameters"];
         InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
         if (call.arguments[@"customParameters"]) {
-            [Insider visitProductDetailPageWithProduct:product customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider visitProductDetailPageWithProduct:product customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider visitProductDetailPageWithProduct:product];
         }
@@ -618,9 +668,9 @@ FlutterEventSink mEventSink;
         }
         NSString *saleID = call.arguments[@"saleID"];
         if (saleID.length > 0) {
-            [Insider visitCartPageWithProducts:cartProducts saleID:saleID customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider visitCartPageWithProducts:cartProducts saleID:saleID customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else if (call.arguments[@"customParameters"]) {
-            [Insider visitCartPageWithProducts:cartProducts customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider visitCartPageWithProducts:cartProducts customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider visitCartPageWithProducts:cartProducts];
         }
@@ -641,7 +691,7 @@ FlutterEventSink mEventSink;
         NSArray *productCustomParameters = call.arguments[@"productCustomParameters"];
         InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
         if (call.arguments[@"customParameters"]) {
-            [Insider itemPurchasedWithSaleID:call.arguments[@"uniqueSaleID"] product:product customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider itemPurchasedWithSaleID:call.arguments[@"uniqueSaleID"] product:product customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider itemPurchasedWithSaleID:call.arguments[@"uniqueSaleID"] product:product];
         }
@@ -662,7 +712,7 @@ FlutterEventSink mEventSink;
         NSArray *productCustomParameters = call.arguments[@"productCustomParameters"];
         InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
         if (call.arguments[@"customParameters"]) {
-            [Insider itemAddedToCartWithProduct:product customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider itemAddedToCartWithProduct:product customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider itemAddedToCartWithProduct:product];
         }
@@ -680,9 +730,9 @@ FlutterEventSink mEventSink;
         }
         NSString *saleID = call.arguments[@"saleID"];
         if (saleID.length > 0) {
-            [Insider itemRemovedFromCartWithProductID:call.arguments[@"productID"] saleID:saleID customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider itemRemovedFromCartWithProductID:call.arguments[@"productID"] saleID:saleID customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else if (call.arguments[@"customParameters"]) {
-            [Insider itemRemovedFromCartWithProductID:call.arguments[@"productID"] customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider itemRemovedFromCartWithProductID:call.arguments[@"productID"] customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider itemRemovedFromCartWithProductID:call.arguments[@"productID"]];
         }
@@ -695,7 +745,7 @@ FlutterEventSink mEventSink;
 - (void)cartCleared:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         if (call.arguments[@"customParameters"]) {
-            [Insider cartClearedWithCustomParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider cartClearedWithCustomParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider cartCleared];
         }
@@ -721,7 +771,7 @@ FlutterEventSink mEventSink;
             [wishlistProducts addObject:product];
         }
         if (call.arguments[@"customParameters"]) {
-            [Insider visitWishlistWithProducts:wishlistProducts customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider visitWishlistWithProducts:wishlistProducts customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider visitWishlistWithProducts:wishlistProducts];
         }
@@ -742,7 +792,7 @@ FlutterEventSink mEventSink;
         NSArray *productCustomParameters = call.arguments[@"productCustomParameters"];
         InsiderProduct *product = [FlutterInsiderUtils parseProductFromRequiredFields:requiredFields andOptionalFields:optionalFields andCustomParameters:productCustomParameters];
         if (call.arguments[@"customParameters"]) {
-            [Insider itemAddedToWishlistWithProduct:product customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider itemAddedToWishlistWithProduct:product customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider itemAddedToWishlistWithProduct:product];
         }
@@ -760,7 +810,7 @@ FlutterEventSink mEventSink;
         }
 
         if (call.arguments[@"customParameters"]) {
-            [Insider itemRemovedFromWishlistWithProductID:call.arguments[@"productID"] customParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider itemRemovedFromWishlistWithProductID:call.arguments[@"productID"] customParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider itemRemovedFromWishlistWithProductID:call.arguments[@"productID"]];
         }
@@ -773,7 +823,7 @@ FlutterEventSink mEventSink;
 - (void)wishlistCleared:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         if (call.arguments[@"customParameters"]) {
-            [Insider wishlistClearedWithCustomParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider wishlistClearedWithCustomParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider wishlistCleared];
         }
@@ -853,10 +903,10 @@ FlutterEventSink mEventSink;
             result([FlutterError errorWithCode:@"MESSAGE_CENTER_LOG" message:@"Missing arguments" details:nil]);
             return;
         }
-        [InsiderHybrid getMessageCenterDataWithLimit:[call.arguments[@"limit"] integerValue]
-                                           startDate:[call.arguments[@"startDate"] integerValue]
-                                             endDate:[call.arguments[@"endDate"] integerValue]
-                                             success:^(NSArray *messageCenterData) {
+        [FlutterInsiderUtils getMessageCenterDataWithLimit:[call.arguments[@"limit"] integerValue]
+                                           startDateMillis:[call.arguments[@"startDate"] integerValue]
+                                             endDateMillis:[call.arguments[@"endDate"] integerValue]
+                                                   success:^(NSArray *messageCenterData) {
                                                  result(messageCenterData);
                                              }];
     } @catch (NSException *e) {
@@ -1056,7 +1106,7 @@ FlutterEventSink mEventSink;
             [self returnInvalidArgs:result];
             return;
         }
-        [InsiderHybrid setGender:[call.arguments[@"value"] intValue]];
+        [FlutterInsiderUtils setGender:[call.arguments[@"value"] intValue]];
         result(nil);
     } @catch (NSException *e) {
         [self returnException:e withResult:result];
@@ -1332,6 +1382,60 @@ FlutterEventSink mEventSink;
     }
 }
 
+- (void)addObjectsToCustomAttribute:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        if (!call.arguments[@"key"] || !call.arguments[@"value"]) {
+            [self returnInvalidArgs:result];
+            return;
+        }
+        [Insider getCurrentUser].addObjectsToCustomAttribute(call.arguments[@"key"], [FlutterInsiderUtils convertCustomParametersList:call.arguments[@"value"]]);
+        result(nil);
+    } @catch (NSException *e) {
+        [self returnException:e withResult:result];
+    }
+}
+
+- (void)mergeObjectsInCustomAttribute:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        if (!call.arguments[@"key"] || !call.arguments[@"match"] || !call.arguments[@"value"]) {
+            [self returnInvalidArgs:result];
+            return;
+        }
+        NSDictionary *match = [FlutterInsiderUtils convertMatch:call.arguments[@"match"]];
+        if (!match) {
+            [self returnLossyMatch:result];
+            return;
+        }
+        [Insider getCurrentUser].mergeObjectsInCustomAttribute(call.arguments[@"key"],
+                                                               match,
+                                                               [FlutterInsiderUtils convertCustomParameters:call.arguments[@"value"]]);
+        result(nil);
+    } @catch (NSException *e) {
+        [self returnException:e withResult:result];
+    }
+}
+
+- (void)removeObjectsFromCustomAttribute:(FlutterMethodCall *)call withResult:(FlutterResult)result {
+    @try {
+        if (!call.arguments[@"key"]) {
+            [self returnInvalidArgs:result];
+            return;
+        }
+        // Only an absent match removes every object. A present but malformed match is rejected
+        // instead of falling through to that irreversible path; the Android bridge does the same.
+        id rawMatch = call.arguments[@"match"];
+        NSDictionary *match = rawMatch ? [FlutterInsiderUtils convertMatch:rawMatch] : nil;
+        if (rawMatch && !match) {
+            [self returnLossyMatch:result];
+            return;
+        }
+        [Insider getCurrentUser].removeObjectsFromCustomAttribute(call.arguments[@"key"], match);
+        result(nil);
+    } @catch (NSException *e) {
+        [self returnException:e withResult:result];
+    }
+}
+
 - (void)unsetCustomAttribute:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         if (!call.arguments[@"key"]) {
@@ -1363,11 +1467,19 @@ FlutterEventSink mEventSink;
 
 - (void)login:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
-        if (!call.arguments[@"identifiers"]) {
+        NSDictionary *givenIdentifiers = call.arguments[@"identifiers"];
+
+        if (!givenIdentifiers) {
             [self returnInvalidArgs:result];
             return;
         }
-        InsiderIdentifiers *insiderIdentifiers = [self buildInsiderIdentifiersFromMap:call.arguments[@"identifiers"]];
+        // Native login returns without invoking its callback on an empty set,
+        // leaving the channel result undelivered.
+        if (givenIdentifiers.count == 0) {
+            [self returnEmptyIdentifiers:result];
+            return;
+        }
+        InsiderIdentifiers *insiderIdentifiers = [self buildInsiderIdentifiersFromMap:givenIdentifiers];
 
         if (call.arguments[@"insiderID"]) {
             [[Insider getCurrentUser] login:insiderIdentifiers insiderIDResult:^(NSString *insiderID) {
@@ -1449,7 +1561,7 @@ FlutterEventSink mEventSink;
 
 -(void)registerCallback:(NSDictionary*)dict {
     @try {
-        mEventSink([InsiderHybrid dictToJson:dict]);
+        [FlutterInsiderUtils sendDict:dict toSink:mEventSink];
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }
@@ -1484,7 +1596,7 @@ FlutterEventSink mEventSink;
 -(void)signUpConfirmation:(FlutterMethodCall *)call withResult:(FlutterResult)result {
     @try {
         if (call.arguments[@"customParameters"]) {
-            [Insider signUpConfirmationWithCustomParameters:[self convertCustomParameters:call.arguments[@"customParameters"]]];
+            [Insider signUpConfirmationWithCustomParameters:[FlutterInsiderUtils convertCustomParameters:call.arguments[@"customParameters"]]];
         } else {
             [Insider signUpConfirmation];
         }
@@ -1553,7 +1665,7 @@ FlutterEventSink mEventSink;
 
 -(void)foregroundPushCallback:(UNNotification *) notification {
     @try {
-        mEventSink([InsiderHybrid dictToJson:notification.request.content.userInfo]);
+        [FlutterInsiderUtils sendDict:notification.request.content.userInfo toSink:mEventSink];
     } @catch (NSException *e) {
         [Insider sendError:e desc:[NSString stringWithFormat:@"%s:%d", __func__, __LINE__]];
     }

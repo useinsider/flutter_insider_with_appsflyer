@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../enum/InsiderAppCardActionType.dart';
+import '../enum/InsiderAppCardDeeplinkType.dart';
 import '../flutter_insider.dart' show FlutterInsider;
 
 class InsiderAppCardContent {
@@ -108,8 +109,28 @@ class InsiderAppCardDeeplinkAction extends InsiderAppCardAction {
         _keysAndValues = keysAndValues,
         super(actionType: InsiderAppCardActionType.DEEP_LINK);
 
-  String get url {
-    return _urlScheme ?? _internalBrowserUrl ?? _externalBrowserUrl ?? '';
+  /// Returns the first non-empty of URL scheme, internal and external browser
+  /// URL, or an empty string when none has a value.
+  String get url => _resolveDeeplink().value;
+
+  /// Returns which [InsiderAppCardDeeplinkType] [url] resolves to; native
+  /// counterparts are Android `getDeeplinkURLType` and iOS `deeplinkURLType`.
+  String get deeplinkType => _resolveDeeplink().key;
+
+  MapEntry<String, String> _resolveDeeplink() {
+    final urlScheme = _urlScheme;
+    if (urlScheme != null && urlScheme.isNotEmpty) {
+      return MapEntry(InsiderAppCardDeeplinkType.URL_SCHEME, urlScheme);
+    }
+    final internalBrowserUrl = _internalBrowserUrl;
+    if (internalBrowserUrl != null && internalBrowserUrl.isNotEmpty) {
+      return MapEntry(InsiderAppCardDeeplinkType.INTERNAL, internalBrowserUrl);
+    }
+    final externalBrowserUrl = _externalBrowserUrl;
+    if (externalBrowserUrl != null && externalBrowserUrl.isNotEmpty) {
+      return MapEntry(InsiderAppCardDeeplinkType.EXTERNAL, externalBrowserUrl);
+    }
+    return const MapEntry(InsiderAppCardDeeplinkType.UNKNOWN, '');
   }
 
   Map<String, dynamic>? get json => _json;
@@ -167,8 +188,7 @@ class InsiderAppCardDeeplinkAction extends InsiderAppCardAction {
           .map((item) {
             if (item is Map) {
               return Map<String, String>.from(
-                item.map((k, v) => MapEntry(k.toString(), v.toString()))
-              );
+                  item.map((k, v) => MapEntry(k.toString(), v.toString())));
             }
             return null;
           })
@@ -177,17 +197,18 @@ class InsiderAppCardDeeplinkAction extends InsiderAppCardAction {
     }
 
     return InsiderAppCardDeeplinkAction(
-      urlScheme: map['url_scheme'] as String?,
-      internalBrowserUrl: map['internal_browser_url'] as String?,
-      externalBrowserUrl: map['external_browser_url'] as String?,
+      urlScheme: _stringOrNull(map['url_scheme']),
+      internalBrowserUrl: _stringOrNull(map['internal_browser_url']),
+      externalBrowserUrl: _stringOrNull(map['external_browser_url']),
       json: jsonMap,
       keysAndValues: keysAndValuesList,
     );
   }
+
+  static String? _stringOrNull(Object? value) => value is String ? value : null;
 }
 
-class InsiderAppCardOpenSettingsAction
-    extends InsiderAppCardAction {
+class InsiderAppCardOpenSettingsAction extends InsiderAppCardAction {
   InsiderAppCardOpenSettingsAction()
       : super(actionType: InsiderAppCardActionType.OPEN_SETTINGS);
 
@@ -198,8 +219,7 @@ class InsiderAppCardOpenSettingsAction
     };
   }
 
-  static InsiderAppCardOpenSettingsAction? fromMap(
-      Map<String, dynamic>? map) {
+  static InsiderAppCardOpenSettingsAction? fromMap(Map<String, dynamic>? map) {
     if (map == null || map['type'] != InsiderAppCardActionType.OPEN_SETTINGS) {
       return null;
     }
@@ -247,11 +267,8 @@ class InsiderAppCardButton {
     };
   }
 
-  static InsiderAppCardButton? fromMap(
-      Map<String, dynamic>? map) {
-    if (map == null ||
-        map['id'] == null ||
-        map['text'] == null) {
+  static InsiderAppCardButton? fromMap(Map<String, dynamic>? map) {
+    if (map == null || map['id'] == null || map['text'] == null) {
       return null;
     }
 
@@ -277,8 +294,10 @@ class InsiderAppCardButton {
     );
   }
 
-  void click() {
-    FlutterInsider.Instance.appCards.clickButton(this);
+  /// Records a tap on this button. Completes when the native SDK call has
+  /// returned; see [FlutterInsiderAppCards.clickButton].
+  Future<void> click() {
+    return FlutterInsider.Instance.appCards.clickButton(this);
   }
 }
 
@@ -343,12 +362,16 @@ class InsiderAppCard {
     };
   }
 
-  void view() {
-    FlutterInsider.Instance.appCards.view(this);
+  /// Records a view (impression) for this card. Completes when the native
+  /// SDK call has returned; see [FlutterInsiderAppCards.view].
+  Future<void> view() {
+    return FlutterInsider.Instance.appCards.view(this);
   }
 
-  void click() {
-    FlutterInsider.Instance.appCards.click(this);
+  /// Records a tap on this card. Completes when the native SDK call has
+  /// returned; see [FlutterInsiderAppCards.click].
+  Future<void> click() {
+    return FlutterInsider.Instance.appCards.click(this);
   }
 
   static InsiderAppCard? fromMap(Map<String, dynamic>? map) {
@@ -367,8 +390,8 @@ class InsiderAppCard {
     List<InsiderAppCardImage>? images;
     if (map['images'] != null && map['images'] is List) {
       images = (map['images'] as List)
-          .map((img) => InsiderAppCardImage.fromMap(
-          Map<String, dynamic>.from(img)))
+          .map((img) =>
+              InsiderAppCardImage.fromMap(Map<String, dynamic>.from(img)))
           .whereType<InsiderAppCardImage>()
           .toList();
     }
@@ -412,7 +435,8 @@ class InsiderAppCard {
       categories = [];
       for (final rawCategory in (map['categories'] as List)) {
         if (rawCategory is! Map) {
-          print('[ERROR] Skipping non-dictionary category element: $rawCategory');
+          print(
+              '[ERROR] Skipping non-dictionary category element: $rawCategory');
           continue;
         }
         final category = InsiderAppCardCategory.fromMap(
@@ -454,15 +478,14 @@ class InsiderAppCardCampaignsResponse {
       return null;
     }
 
-    final cardsList = map['items'] ;
+    final cardsList = map['items'];
 
     if (cardsList == null || cardsList is! List) {
       return InsiderAppCardCampaignsResponse(appCards: []);
     }
 
     final cards = (cardsList)
-        .map((card) => InsiderAppCard.fromMap(
-        Map<String, dynamic>.from(card)))
+        .map((card) => InsiderAppCard.fromMap(Map<String, dynamic>.from(card)))
         .whereType<InsiderAppCard>()
         .toList();
 

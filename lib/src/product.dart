@@ -1,4 +1,5 @@
 import 'utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Builder describing a product for the Insider catalog and shopping events.
@@ -51,6 +52,7 @@ class FlutterInsiderProduct {
     }
     return combined;
   }
+
   late MethodChannel _channel;
 
   /// Creates a product. Prefer [FlutterInsider.createNewProduct] over calling
@@ -71,7 +73,18 @@ class FlutterInsiderProduct {
     requiredFields['image_url'] = imageURL;
     requiredFields['price'] = unitPrice;
     requiredFields['currency'] = currency;
+    if (!unitPrice.isFinite) {
+      debugPrint('[Insider] createNewProduct: the price of $productID is NaN '
+          'or infinite, so this product will be left out of every call that carries it.');
+    }
   }
+
+  /// Whether the required price is finite. A product without one is left out
+  /// of every call that carries it, because a NaN or infinite price breaks
+  /// the native payload.
+  bool get hasSendablePrice =>
+      requiredFields['price'] is double &&
+      (requiredFields['price'] as double).isFinite;
 
   /// Sets the product color.
   FlutterInsiderProduct setColor(String color) {
@@ -107,6 +120,10 @@ class FlutterInsiderProduct {
   /// constructor's `unitPrice`).
   FlutterInsiderProduct setSalePrice(double salePrice) {
     try {
+      if (!FlutterInsiderUtils.isSendableDouble(
+          'setSalePrice', 'sale_price', salePrice)) {
+        return this;
+      }
       this.optionalFields["sale_price"] = salePrice;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
@@ -117,6 +134,10 @@ class FlutterInsiderProduct {
   /// Sets the shipping cost for the product.
   FlutterInsiderProduct setShippingCost(double shippingCost) {
     try {
+      if (!FlutterInsiderUtils.isSendableDouble(
+          'setShippingCost', 'shipping_cost', shippingCost)) {
+        return this;
+      }
       this.optionalFields["shipping_cost"] = shippingCost;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
@@ -127,6 +148,10 @@ class FlutterInsiderProduct {
   /// Sets the discount amount provided by the voucher.
   FlutterInsiderProduct setVoucherDiscount(double voucherDiscount) {
     try {
+      if (!FlutterInsiderUtils.isSendableDouble(
+          'setVoucherDiscount', 'voucher_discount', voucherDiscount)) {
+        return this;
+      }
       this.optionalFields["voucher_discount"] = voucherDiscount;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
@@ -137,6 +162,10 @@ class FlutterInsiderProduct {
   /// Sets the discount amount provided by the promotion.
   FlutterInsiderProduct setPromotionDiscount(double promotionDiscount) {
     try {
+      if (!FlutterInsiderUtils.isSendableDouble(
+          'setPromotionDiscount', 'promotion_discount', promotionDiscount)) {
+        return this;
+      }
       this.optionalFields["promotion_discount"] = promotionDiscount;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
@@ -147,6 +176,11 @@ class FlutterInsiderProduct {
   /// Sets the available stock count.
   FlutterInsiderProduct setStock(int stock) {
     try {
+      // Both bridges narrow to a 32-bit `int` (`toInt`, `intValue`), so a
+      // wider value is stored as a different wrong number, not refused.
+      if (!FlutterInsiderUtils.isSendableInteger('setStock', 'stock', stock)) {
+        return this;
+      }
       this.optionalFields["stock"] = stock;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
@@ -157,6 +191,11 @@ class FlutterInsiderProduct {
   /// Sets the quantity for cart / purchase events.
   FlutterInsiderProduct setQuantity(int quantity) {
     try {
+      // Same 32-bit narrowing as setStock.
+      if (!FlutterInsiderUtils.isSendableInteger(
+          'setQuantity', 'quantity', quantity)) {
+        return this;
+      }
       this.optionalFields["quantity"] = quantity;
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
@@ -177,6 +216,10 @@ class FlutterInsiderProduct {
   /// Attaches a string-typed custom attribute.
   FlutterInsiderProduct setCustomAttributeWithString(String key, String value) {
     try {
+      if (!FlutterInsiderUtils.isSendableKey(
+          'setCustomAttributeWithString', key)) {
+        return this;
+      }
       this.customParameters.add({
         'type': 'string',
         'key': key,
@@ -191,6 +234,14 @@ class FlutterInsiderProduct {
   /// Attaches a double-typed custom attribute.
   FlutterInsiderProduct setCustomAttributeWithDouble(String key, double value) {
     try {
+      if (!FlutterInsiderUtils.isSendableKey(
+          'setCustomAttributeWithDouble', key)) {
+        return this;
+      }
+      if (!FlutterInsiderUtils.isSendableDouble(
+          'setCustomAttributeWithDouble', key, value)) {
+        return this;
+      }
       this.customParameters.add({
         'type': 'double',
         'key': key,
@@ -205,6 +256,14 @@ class FlutterInsiderProduct {
   /// Attaches an integer-typed custom attribute.
   FlutterInsiderProduct setCustomAttributeWithInt(String key, int value) {
     try {
+      if (!FlutterInsiderUtils.isSendableKey(
+          'setCustomAttributeWithInt', key)) {
+        return this;
+      }
+      if (!FlutterInsiderUtils.isSendableInteger(
+          'setCustomAttributeWithInt', key, value)) {
+        return this;
+      }
       this.customParameters.add({
         'type': 'integer',
         'key': key,
@@ -219,6 +278,10 @@ class FlutterInsiderProduct {
   /// Attaches a boolean-typed custom attribute.
   FlutterInsiderProduct setCustomAttributeWithBoolean(String key, bool value) {
     try {
+      if (!FlutterInsiderUtils.isSendableKey(
+          'setCustomAttributeWithBoolean', key)) {
+        return this;
+      }
       this.customParameters.add({
         'type': 'boolean',
         'key': key,
@@ -233,6 +296,10 @@ class FlutterInsiderProduct {
   /// Attaches a date-typed custom attribute. Stored as epoch milliseconds.
   FlutterInsiderProduct setCustomAttributeWithDate(String key, DateTime value) {
     try {
+      if (!FlutterInsiderUtils.isSendableKey(
+          'setCustomAttributeWithDate', key)) {
+        return this;
+      }
       final int epochMilliseconds = value.millisecondsSinceEpoch;
       this.customParameters.add({
         'type': 'date',
@@ -253,6 +320,10 @@ class FlutterInsiderProduct {
   FlutterInsiderProduct setCustomAttributeWithArray(
       String key, List<String> value) {
     try {
+      if (!FlutterInsiderUtils.isSendableKey(
+          'setCustomAttributeWithArray', key)) {
+        return this;
+      }
       this.customParameters.add({
         'type': 'strings',
         'key': key,
@@ -381,12 +452,16 @@ class FlutterInsiderProduct {
   }
 
   /// Attaches a numeric-array custom attribute, dropping any non-finite
-  /// entries. No-op if the resulting array would be empty.
+  /// entries. An array left empty is still attached, as native does.
   FlutterInsiderProduct setCustomAttributeWithNumericArray(
       String key, List<num> values) {
     try {
-      List<num>? validArray = FlutterInsiderUtils.validateNumericArray(values);
-      if (validArray == null) return this;
+      if (!FlutterInsiderUtils.isSendableKey(
+          'setCustomAttributeWithNumericArray', key)) {
+        return this;
+      }
+      List<num> validArray =
+          FlutterInsiderUtils.validateNumericArray(values) ?? <num>[];
 
       this.customParameters.add({
         'type': 'numbers',
@@ -399,11 +474,14 @@ class FlutterInsiderProduct {
     return this;
   }
 
-  /// Attaches a string-array custom attribute, dropping any null or empty
-  /// entries.
+  /// Attaches a string-array custom attribute.
   FlutterInsiderProduct setCustomAttributeWithStringArray(
       String key, List<String> values) {
     try {
+      if (!FlutterInsiderUtils.isSendableKey(
+          'setCustomAttributeWithStringArray', key)) {
+        return this;
+      }
       List<String>? validArray =
           FlutterInsiderUtils.validateStringArray(values);
       if (validArray == null) {

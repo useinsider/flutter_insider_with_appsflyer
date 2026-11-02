@@ -30,9 +30,6 @@ import com.useinsider.insider.InsiderAppCardButton;
 import com.useinsider.insider.InsiderAppCardCampaignsResponse;
 import com.useinsider.insider.InsiderAppCards;
 import com.useinsider.insider.RecommendationEngine;
-import com.useinsider.insiderhybrid.InsiderHybrid;
-import com.useinsider.insiderhybrid.InsiderHybridUtils;
-import com.useinsider.insiderhybrid.constants.InsiderHybridMethods;
 import com.useinsider.insider.CloseButtonPosition;
 import com.useinsider.insider.InsiderIDListener;
 import com.useinsider.insider.flutter_insider.FlutterInsiderUtils;
@@ -90,48 +87,6 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
 
     private boolean isCoreInited = false;
 
-    private Map<String, Object> convertCustomParameters(ArrayList<Map<String, Object>> params) {
-        if (params == null) return null;
-        Map<String, Object> converted = new HashMap<>();
-        for (Map<String, Object> entry : params) {
-            String key = (String) entry.get("key");
-            String type = (String) entry.get("type");
-            Object value = entry.get("value");
-            if (key == null || type == null || value == null) continue;
-            switch (type) {
-                case "string":
-                    converted.put(key, value.toString());
-                    break;
-                case "integer":
-                    converted.put(key, ((Number) value).intValue());
-                    break;
-                case "double":
-                    converted.put(key, ((Number) value).doubleValue());
-                    break;
-                case "boolean":
-                    converted.put(key, value);
-                    break;
-                case "date":
-                    converted.put(key, new Date(((Number) value).longValue()));
-                    break;
-                case "string_array":
-                    if (value instanceof ArrayList) {
-                        converted.put(key, ((ArrayList<String>) value).toArray(new String[0]));
-                    }
-                    break;
-                case "numeric_array":
-                    if (value instanceof ArrayList) {
-                        converted.put(key, ((ArrayList<?>) value).toArray(new Number[0]));
-                    }
-                    break;
-                default:
-                    converted.put(key, value);
-                    break;
-            }
-        }
-        return converted;
-    }
-
     @Override
     public void onAttachedToEngine(FlutterPluginBinding binding) {
         this.pluginBinding = binding;
@@ -182,6 +137,27 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
 
     private void returnInvalidArgs(Result result) {
         result.error("INVALID_ARGS", "Missing required arguments", null);
+    }
+
+    /**
+     * Rejects a merge/remove whose match lost an entry while being converted.
+     * The generic "missing arguments" error is wrong here - the arguments are
+     * all present - and it is what the Dart layer prints to the developer.
+     */
+    private void returnLossyMatch(Result result) {
+        returnInvalidArgs(result, "INVALID_MATCH",
+                "The match lost an entry while being converted, so the call was not sent. "
+                        + "A narrowed match would affect more objects than requested.");
+    }
+
+    /**
+     * Rejects a login whose identifier set is present but carries nothing to
+     * identify the user with, which the generic "missing arguments" error
+     * would describe wrongly.
+     */
+    private void returnEmptyIdentifiers(Result result) {
+        returnInvalidArgs(result, "INVALID_IDENTIFIERS",
+                "The identifier set is empty, so there is nothing to identify the user with.");
     }
 
     private void returnInvalidArgs(Result result, String code, String message) {
@@ -283,7 +259,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                 return;
             }
             switch (call.method) {
-                case InsiderHybridMethods.INIT_WITH_CUSTOM_ENDPOINT:
+                case Constants.INIT_WITH_CUSTOM_ENDPOINT:
                     if (!call.hasArgument("partnerName") || !call.hasArgument("sdkVersion")
                             || !call.hasArgument("customEndpoint")) {
                         result.error(Constants.ERROR, "SDK failed to init", null);
@@ -296,7 +272,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.setCustomEndpoint(call.argument("customEndpoint").toString());
                     initSDK(call, result);
                     break;
-                case InsiderHybridMethods.INIT_WITH_LAUNCH_OPTIONS:
+                case Constants.INIT_WITH_LAUNCH_OPTIONS:
                     if (!call.hasArgument("partnerName") || !call.hasArgument("sdkVersion")) {
                         result.error(Constants.ERROR, "SDK failed to init", null);
                         return;
@@ -307,7 +283,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     }
                     initSDK(call, result);
                     break;
-                case InsiderHybridMethods.HANDLE_NOTIFICATION:
+                case Constants.HANDLE_NOTIFICATION:
                     if (!call.hasArgument("notification")) {
                         returnInvalidArgs(result);
                         return;
@@ -350,7 +326,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.triggerPushProcessWithNotificationData(context, triggerNotificationData);
                     result.success(null);
                     break;
-                case InsiderHybridMethods.START_TRACKING_GEOFENCE:
+                case Constants.START_TRACKING_GEOFENCE:
                     Insider.Instance.startTrackingGeofence();
                     result.success(null);
                     break;
@@ -361,7 +337,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_GDPR_CONSENT:
+                case Constants.SET_GDPR_CONSENT:
                     if (!call.hasArgument("consent")) {
                         returnInvalidArgs(result);
                         return;
@@ -427,32 +403,32 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.setInternalBrowserCloseButtonPosition(closeButtonPosition);
                     result.success(null);
                     break;
-                case InsiderHybridMethods.GET_CONTENT_STRING_WITH_NAME:
+                case Constants.GET_CONTENT_STRING_WITH_NAME:
                     if (!isContentOptimizerCallValid(call)) {
                         result.error(Constants.ERROR, null, null);
                         return;
                     }
                     result.success(
-                            InsiderHybrid.getContentStringWithName(call.argument(Constants.VARIABLE_NAME).toString(),
+                            FlutterInsiderUtils.getContentStringWithName(call.argument(Constants.VARIABLE_NAME).toString(),
                                     call.argument(Constants.DEFAULT_VALUE).toString(),
                                     (int) call.argument(Constants.DATA_TYPE)));
                     break;
-                case InsiderHybridMethods.GET_CONTENT_INT_WITH_NAME:
+                case Constants.GET_CONTENT_INT_WITH_NAME:
                     if (!isContentOptimizerCallValid(call)) {
                         result.error(Constants.ERROR, null, null);
                         return;
                     }
-                    result.success(InsiderHybrid.getContentIntWithName(
+                    result.success(FlutterInsiderUtils.getContentIntWithName(
                             call.argument(Constants.VARIABLE_NAME).toString(),
                             (int) call.argument(Constants.DEFAULT_VALUE), (int) call.argument(Constants.DATA_TYPE)));
                     break;
-                case InsiderHybridMethods.GET_CONTENT_BOOL_WITH_NAME:
+                case Constants.GET_CONTENT_BOOL_WITH_NAME:
                     if (!isContentOptimizerCallValid(call)) {
                         result.error(Constants.ERROR, null, null);
                         return;
                     }
                     result.success(
-                            InsiderHybrid.getContentBoolWithName(call.argument(Constants.VARIABLE_NAME).toString(),
+                            FlutterInsiderUtils.getContentBoolWithName(call.argument(Constants.VARIABLE_NAME).toString(),
                                     (boolean) call.argument(Constants.DEFAULT_VALUE),
                                     (int) call.argument(Constants.DATA_TYPE)));
                     break;
@@ -465,7 +441,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.markContentOptimizerAsSeen(contentOptimizerVariableName);
                     result.success(null);
                     break;
-                case InsiderHybridMethods.GET_SMART_RECOMMENDATION:
+                case Constants.GET_SMART_RECOMMENDATION:
                     if (!call.hasArgument(Constants.RECOMMENDATION_ID) || !call.hasArgument(Constants.LOCALE)
                             || !call.hasArgument(Constants.CURRENCY)) {
                         result.error(Constants.RECOMMENDATION_LOG, "Missing arguments", null);
@@ -475,7 +451,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             call.argument(Constants.LOCALE).toString(), call.argument(Constants.CURRENCY).toString(),
                             getRecommendationCallback(result));
                     break;
-                case InsiderHybridMethods.GET_SMART_RECOMMENDATION_WITH_PRODUCT:
+                case Constants.GET_SMART_RECOMMENDATION_WITH_PRODUCT:
                     if (!call.hasArgument(Constants.RECOMMENDATION_ID) || !call.hasArgument(Constants.LOCALE)
                             || !call.hasArgument("requiredFields")
                             || !call.hasArgument("optionalFields") || !call.hasArgument("customParameters")) {
@@ -504,7 +480,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             call.argument(Constants.CURRENCY).toString(),
                             getRecommendationCallback(result));
                     break;
-                case InsiderHybridMethods.CLICK_SMART_RECOMMENDATION_PRODUCT:
+                case Constants.CLICK_SMART_RECOMMENDATION_PRODUCT:
                     if (!call.hasArgument(Constants.RECOMMENDATION_ID) ||
                             !call.hasArgument("requiredFields") ||
                             !call.hasArgument("optionalFields") || !call.hasArgument("customParameters")
@@ -519,13 +495,13 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.clickSmartRecommendationProduct((int) call.argument(Constants.RECOMMENDATION_ID), clickRecProduct);
                     result.success(null);
                     break;
-                case InsiderHybridMethods.GET_MESSAGE_CENTER_DATA:
+                case Constants.GET_MESSAGE_CENTER_DATA:
                     if (!call.hasArgument(Constants.START_DATE) || !call.hasArgument(Constants.END_DATE)
                             || !call.hasArgument(Constants.LIMIT)) {
                         result.error(Constants.MESSAGE_CENTER_LOG, "Missing arguments", null);
                         return;
                     }
-                    InsiderHybrid.getMessageCenterData((int) call.argument(Constants.LIMIT),
+                    FlutterInsiderUtils.getMessageCenterData((int) call.argument(Constants.LIMIT),
                             (long) call.argument(Constants.START_DATE),
                             (long) call.argument(Constants.END_DATE), getMessageCenterCallback(result));
                     break;
@@ -540,7 +516,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             } else {
                                 try {
                                     JSONObject jsonObject = responseObject.toJSONObject();
-                                    HashMap<String, Object> map = InsiderHybridUtils.convertJSONObjectToMap(jsonObject);
+                                    HashMap<String, Object> map = FlutterInsiderUtils.convertJSONObjectToMap(jsonObject);
                                     resultWrapper.success(map);
                                 } catch (Exception e) {
                                     resultWrapper.error(Constants.APP_CARDS_LOG, "App Cards campaigns exception.", null);
@@ -675,7 +651,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             buildInsiderIdentifiers(call.argument("identifiers")),
                             getMessageCenterCallback(result));
                     break;
-                case InsiderHybridMethods.REMOVE_INAPP:
+                case Constants.REMOVE_INAPP:
                     // Same reason as the init path: with no Activity attached there is no in-app
                     // on screen to remove, so this is a no-op rather than a null handed to native.
                     if (activity != null) {
@@ -683,7 +659,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.PUT_EXCEPTION:
+                case Constants.PUT_EXCEPTION:
                     if (!call.hasArgument(Constants.EXCEPTION)) {
                         returnInvalidArgs(result);
                         return;
@@ -692,7 +668,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.putException(new Exception(exception));
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_CUSTOM_ENDPOINT:
+                case Constants.SET_CUSTOM_ENDPOINT:
                     if (!call.hasArgument(Constants.ENDPOINT)) {
                         returnInvalidArgs(result);
                         return;
@@ -701,15 +677,15 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.setCustomEndpoint(endpoint);
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_GENDER:
+                case Constants.SET_GENDER:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
                     }
-                    InsiderHybrid.setGender((int) call.argument(Constants.VALUE));
+                    FlutterInsiderUtils.setGender((int) call.argument(Constants.VALUE));
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_BIRTHDAY:
+                case Constants.SET_BIRTHDAY:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -719,7 +695,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setBirthday(birthdayDate);
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_NAME:
+                case Constants.SET_NAME:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -727,7 +703,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setName(call.argument(Constants.VALUE).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_SURNAME:
+                case Constants.SET_SURNAME:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -735,7 +711,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setSurname(call.argument(Constants.VALUE).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_AGE:
+                case Constants.SET_AGE:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -752,7 +728,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setPhoneNumber(call.argument(Constants.VALUE).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_SMS_OPTIN:
+                case Constants.SET_SMS_OPTIN:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -769,7 +745,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setEmail(call.argument(Constants.VALUE).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_EMAIL_OPTIN:
+                case Constants.SET_EMAIL_OPTIN:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -778,7 +754,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             .setEmailOptin(Boolean.parseBoolean(call.argument(Constants.VALUE).toString()));
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_PUSH_OPTIN:
+                case Constants.SET_PUSH_OPTIN:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -787,7 +763,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             .setPushOptin(Boolean.parseBoolean(call.argument(Constants.VALUE).toString()));
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_LOCATION_OPTIN:
+                case Constants.SET_LOCATION_OPTIN:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -796,7 +772,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             .setLocationOptin(Boolean.parseBoolean(call.argument(Constants.VALUE).toString()));
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_LANGUAGE:
+                case Constants.SET_LANGUAGE:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -804,7 +780,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setLanguage(call.argument(Constants.VALUE).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_LOCALE:
+                case Constants.SET_LOCALE:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -812,7 +788,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setLocale(call.argument(Constants.VALUE).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_FACEBOOK_ID:
+                case Constants.SET_FACEBOOK_ID:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -820,7 +796,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setFacebookID(call.argument(Constants.VALUE).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_TWITTER_ID:
+                case Constants.SET_TWITTER_ID:
                     if (!call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -828,7 +804,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setTwitterID(call.argument(Constants.VALUE).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_CUSTOM_ATTRIBUTE_WITH_STRING:
+                case Constants.SET_CUSTOM_ATTRIBUTE_WITH_STRING:
                     if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -837,7 +813,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             call.argument(Constants.KEY).toString(), call.argument(Constants.VALUE).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_CUSTOM_ATTRIBUTE_WITH_DOUBLE:
+                case Constants.SET_CUSTOM_ATTRIBUTE_WITH_DOUBLE:
                     if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -847,7 +823,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             Double.parseDouble(call.argument(Constants.VALUE).toString()));
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_CUSTOM_ATTRIBUTE_WITH_INT:
+                case Constants.SET_CUSTOM_ATTRIBUTE_WITH_INT:
                     if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -856,7 +832,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             Integer.parseInt(call.argument(Constants.VALUE).toString()));
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_CUSTOM_ATTRIBUTE_WITH_BOOLEAN:
+                case Constants.SET_CUSTOM_ATTRIBUTE_WITH_BOOLEAN:
                     if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -866,7 +842,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             Boolean.parseBoolean(call.argument(Constants.VALUE).toString()));
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_CUSTOM_ATTRIBUTE_WITH_DATE:
+                case Constants.SET_CUSTOM_ATTRIBUTE_WITH_DATE:
                     if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -878,7 +854,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().setCustomAttributeWithDate(customKey, valueDate);
                     result.success(null);
                     break;
-                case InsiderHybridMethods.SET_CUSTOM_ATTRIBUTE_WITH_ARRAY:
+                case Constants.SET_CUSTOM_ATTRIBUTE_WITH_ARRAY:
                     if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
@@ -888,7 +864,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                             call.argument(Constants.KEY).toString(), arrayList.toArray(new String[arrayList.size()]));
                     result.success(null);
                     break;
-                case InsiderHybridMethods.UNSET_CUSTOM_ATTRIBUTE:
+                case Constants.UNSET_CUSTOM_ATTRIBUTE:
                     if (!call.hasArgument(Constants.KEY)) {
                         returnInvalidArgs(result);
                         return;
@@ -896,12 +872,66 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().unsetCustomAttribute(call.argument(Constants.KEY).toString());
                     result.success(null);
                     break;
-                case InsiderHybridMethods.LOGIN:
-                    if (!call.hasArgument("identifiers")) {
+                case "addObjectsToCustomAttribute":
+                    if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.VALUE)) {
                         returnInvalidArgs(result);
                         return;
                     }
-                    InsiderIdentifiers insiderIdentifiers = buildInsiderIdentifiers(call.argument("identifiers"));
+                    Insider.Instance.getCurrentUser().addObjectsToCustomAttribute(
+                            call.argument(Constants.KEY).toString(),
+                            FlutterInsiderUtils.convertCustomParametersList((List<?>) call.argument(Constants.VALUE)));
+                    result.success(null);
+                    break;
+                case "mergeObjectsInCustomAttribute":
+                    if (!call.hasArgument(Constants.KEY) || !call.hasArgument(Constants.MATCH)
+                            || !call.hasArgument(Constants.VALUE)) {
+                        returnInvalidArgs(result);
+                        return;
+                    }
+                    Map<String, Object> mergeMatch = FlutterInsiderUtils.convertMatch(call.argument(Constants.MATCH));
+                    if (mergeMatch == null) {
+                        returnLossyMatch(result);
+                        return;
+                    }
+                    Insider.Instance.getCurrentUser().mergeObjectsInCustomAttribute(
+                            call.argument(Constants.KEY).toString(),
+                            mergeMatch,
+                            FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument(Constants.VALUE)));
+                    result.success(null);
+                    break;
+                case "removeObjectsFromCustomAttribute":
+                    if (!call.hasArgument(Constants.KEY)) {
+                        returnInvalidArgs(result);
+                        return;
+                    }
+                    String removeObjectsKey = call.argument(Constants.KEY).toString();
+                    if (call.hasArgument(Constants.MATCH)) {
+                        Map<String, Object> removeMatch = FlutterInsiderUtils.convertMatch(call.argument(Constants.MATCH));
+                        if (removeMatch == null) {
+                            returnLossyMatch(result);
+                            return;
+                        }
+                        Insider.Instance.getCurrentUser().removeObjectsFromCustomAttribute(removeObjectsKey, removeMatch);
+                    } else {
+                        // No match removes every object of the attribute.
+                        Insider.Instance.getCurrentUser().removeObjectsFromCustomAttribute(removeObjectsKey);
+                    }
+                    result.success(null);
+                    break;
+                case Constants.LOGIN:
+                    Map<String, Object> loginIdentifiers = call.argument("identifiers");
+
+                    if (loginIdentifiers == null) {
+                        returnInvalidArgs(result);
+                        return;
+                    }
+                    // Native login returns without invoking its callback on an
+                    // empty set, leaving the channel result undelivered.
+                    if (loginIdentifiers.isEmpty()) {
+                        returnEmptyIdentifiers(result);
+                        return;
+                    }
+                    InsiderIdentifiers insiderIdentifiers = buildInsiderIdentifiers(loginIdentifiers);
 
                     if (call.hasArgument("insiderID")) {
                         Insider.Instance.getCurrentUser().login(insiderIdentifiers, new InsiderUser.InsiderIDResult() {
@@ -925,7 +955,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().login(insiderIdentifiers);
                     result.success("");
                     break;
-                case InsiderHybridMethods.LOGOUT:
+                case Constants.LOGOUT:
                     Insider.Instance.getCurrentUser().logout();
                     result.success("");
                     break;
@@ -961,7 +991,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     Insider.Instance.getCurrentUser().logoutResettingInsiderID(logoutIdentifiersArray);
                     result.success("");
                     break;
-                case InsiderHybridMethods.ITEM_PURCHASED:
+                case Constants.ITEM_PURCHASED:
                     if (!call.hasArgument("uniqueSaleID") || !call.hasArgument("requiredFields")
                             || !call.hasArgument("optionalFields") || !call.hasArgument("productCustomParameters")) {
                         returnInvalidArgs(result);
@@ -972,13 +1002,13 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     List<Map<String, Object>> productCustomParameters = (List<Map<String, Object>>) call.argument("productCustomParameters");
                     InsiderProduct product = FlutterInsiderUtils.parseProduct(requiredFields, optionalFields, productCustomParameters);
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.itemPurchased(call.argument("uniqueSaleID").toString(), product, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.itemPurchased(call.argument("uniqueSaleID").toString(), product, FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.itemPurchased(call.argument("uniqueSaleID").toString(), product);
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.ITEM_ADDED_TO_CART:
+                case Constants.ITEM_ADDED_TO_CART:
                     if (!call.hasArgument("requiredFields")
                             || !call.hasArgument("optionalFields") || !call.hasArgument("productCustomParameters")) {
                         returnInvalidArgs(result);
@@ -989,13 +1019,13 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     List<Map<String, Object>> cartCustomParameters = (List<Map<String, Object>>) call.argument("productCustomParameters");
                     InsiderProduct cartProduct = FlutterInsiderUtils.parseProduct(cartRequiredFields, cartOptionalFields, cartCustomParameters);
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.itemAddedToCart(cartProduct, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.itemAddedToCart(cartProduct, FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.itemAddedToCart(cartProduct);
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.ITEM_REMOVED_FROM_CART:
+                case Constants.ITEM_REMOVED_FROM_CART:
                     if (!call.hasArgument("productID")) {
                         returnInvalidArgs(result);
                         return;
@@ -1003,26 +1033,26 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     if (call.hasArgument("saleID")) {
                         String removeSaleID = (String) call.argument("saleID");
                         if (call.hasArgument("customParameters")) {
-                            Insider.Instance.itemRemovedFromCart(call.argument("productID").toString(), removeSaleID, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                            Insider.Instance.itemRemovedFromCart(call.argument("productID").toString(), removeSaleID, FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                         } else {
                             Insider.Instance.itemRemovedFromCart(call.argument("productID").toString(), removeSaleID);
                         }
                     } else if (call.hasArgument("customParameters")) {
-                        Insider.Instance.itemRemovedFromCart(call.argument("productID").toString(), convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.itemRemovedFromCart(call.argument("productID").toString(), FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.itemRemovedFromCart(call.argument("productID").toString());
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.CART_CLEARED:
+                case Constants.CART_CLEARED:
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.cartCleared(convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.cartCleared(FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.cartCleared();
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.TAG_EVENT:
+                case Constants.TAG_EVENT:
                     if (!call.hasArgument("name") || !call.hasArgument("parameters")) {
                         returnInvalidArgs(result);
                         return;
@@ -1032,28 +1062,28 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     FlutterInsiderUtils.parseEvent(eventName, parameters).build();
                     result.success(null);
                     break;
-                case InsiderHybridMethods.VISIT_HOME_PAGE:
+                case Constants.VISIT_HOME_PAGE:
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.visitHomePage(convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.visitHomePage(FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.visitHomePage();
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.VISIT_LISTING_PAGE:
+                case Constants.VISIT_LISTING_PAGE:
                     if (!call.hasArgument("taxonomy")) {
                         returnInvalidArgs(result);
                         return;
                     }
                     String[] taxonomy = ((ArrayList<String>) call.argument("taxonomy")).toArray(new String[0]);
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.visitListingPage(taxonomy, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.visitListingPage(taxonomy, FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.visitListingPage(taxonomy);
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.VISIT_PRODUCT_DETAIL_PAGE:
+                case Constants.VISIT_PRODUCT_DETAIL_PAGE:
                     if (!call.hasArgument("requiredFields")
                             || !call.hasArgument("optionalFields") || !call.hasArgument("productCustomParameters")) {
                         returnInvalidArgs(result);
@@ -1064,18 +1094,18 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     List<Map<String, Object>> detailCustomParameters = (List<Map<String, Object>>) call.argument("productCustomParameters");
                     InsiderProduct detailProduct = FlutterInsiderUtils.parseProduct(detailRequiredFields, detailOptionalFields, detailCustomParameters);
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.visitProductDetailPage(detailProduct, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.visitProductDetailPage(detailProduct, FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.visitProductDetailPage(detailProduct);
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.VISIT_CART_PAGE:
-                    if (!call.hasArgument(InsiderHybridMethods.PRODUCTS)) {
+                case Constants.VISIT_CART_PAGE:
+                    if (!call.hasArgument(Constants.PRODUCTS)) {
                         returnInvalidArgs(result);
                         return;
                     }
-                    ArrayList<Map<String, Object>> cartProductsList = (ArrayList<Map<String, Object>>) call.argument(InsiderHybridMethods.PRODUCTS);
+                    ArrayList<Map<String, Object>> cartProductsList = (ArrayList<Map<String, Object>>) call.argument(Constants.PRODUCTS);
                     InsiderProduct[] cartProducts = new InsiderProduct[cartProductsList.size()];
                     for (int i = 0; i < cartProductsList.size(); i++) {
                         Map<String, Object> productMap = cartProductsList.get(i);
@@ -1087,18 +1117,18 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     if (call.hasArgument("saleID")) {
                         String cartSaleID = (String) call.argument("saleID");
                         if (call.hasArgument("customParameters")) {
-                            Insider.Instance.visitCartPage(cartProducts, cartSaleID, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                            Insider.Instance.visitCartPage(cartProducts, cartSaleID, FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                         } else {
                             Insider.Instance.visitCartPage(cartProducts, cartSaleID);
                         }
                     } else if (call.hasArgument("customParameters")) {
-                        Insider.Instance.visitCartPage(cartProducts, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.visitCartPage(cartProducts, FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.visitCartPage(cartProducts);
                     }
                     result.success(null);
                     break;
-                case InsiderHybridMethods.REGISTER_WITH_QUIET_PERMISSION:
+                case Constants.REGISTER_WITH_QUIET_PERMISSION:
                 case "setForegroundPushCallback":
                 case "setActiveForegroundPushView":
                     result.success(null);
@@ -1123,7 +1153,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     break;
                 case "signUpConfirmation":
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.signUpConfirmation(convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.signUpConfirmation(FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.signUpConfirmation();
                     }
@@ -1181,11 +1211,11 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     result.success(null);
                     break;
                 case "visitWishlistPage":
-                    if (!call.hasArgument(InsiderHybridMethods.PRODUCTS)) {
+                    if (!call.hasArgument(Constants.PRODUCTS)) {
                         returnInvalidArgs(result);
                         return;
                     }
-                    ArrayList<Map<String, Object>> wishlistProductsList = (ArrayList<Map<String, Object>>) call.argument(InsiderHybridMethods.PRODUCTS);
+                    ArrayList<Map<String, Object>> wishlistProductsList = (ArrayList<Map<String, Object>>) call.argument(Constants.PRODUCTS);
                     InsiderProduct[] wishlistProducts = new InsiderProduct[wishlistProductsList.size()];
                     for (int i = 0; i < wishlistProductsList.size(); i++) {
                         Map<String, Object> productMap = wishlistProductsList.get(i);
@@ -1195,7 +1225,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                         wishlistProducts[i] = FlutterInsiderUtils.parseProduct(reqFields, optFields, customParams);
                     }
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.visitWishlistPage(wishlistProducts, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.visitWishlistPage(wishlistProducts, FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.visitWishlistPage(wishlistProducts);
                     }
@@ -1212,7 +1242,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     List<Map<String, Object>> wishlistCustomParameters = (List<Map<String, Object>>) call.argument("productCustomParameters");
                     InsiderProduct wishlistProduct = FlutterInsiderUtils.parseProduct(wishlistRequiredFields, wishlistOptionalFields, wishlistCustomParameters);
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.itemAddedToWishlist(wishlistProduct, convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.itemAddedToWishlist(wishlistProduct, FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.itemAddedToWishlist(wishlistProduct);
                     }
@@ -1225,7 +1255,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     }
 
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.itemRemovedFromWishlist(call.argument("productID").toString(), convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.itemRemovedFromWishlist(call.argument("productID").toString(), FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.itemRemovedFromWishlist(call.argument("productID").toString());
                     }
@@ -1233,7 +1263,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                     break;
                 case "wishlistCleared":
                     if (call.hasArgument("customParameters")) {
-                        Insider.Instance.wishlistCleared(convertCustomParameters((ArrayList<Map<String, Object>>) call.argument("customParameters")));
+                        Insider.Instance.wishlistCleared(FlutterInsiderUtils.convertCustomParameters((List<Map<String, Object>>) call.argument("customParameters")));
                     } else {
                         Insider.Instance.wishlistCleared();
                     }
@@ -1265,7 +1295,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                         return;
                     }
                     result.success(
-                            InsiderHybrid.getContentStringWithoutCache(call.argument(Constants.VARIABLE_NAME).toString(),
+                            FlutterInsiderUtils.getContentStringWithoutCache(call.argument(Constants.VARIABLE_NAME).toString(),
                                     call.argument(Constants.DEFAULT_VALUE).toString(),
                                     (int) call.argument(Constants.DATA_TYPE)));
                     break;
@@ -1274,7 +1304,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                         result.error(Constants.ERROR, null, null);
                         return;
                     }
-                    result.success(InsiderHybrid.getContentIntWithoutCache(
+                    result.success(FlutterInsiderUtils.getContentIntWithoutCache(
                             call.argument(Constants.VARIABLE_NAME).toString(),
                             (int) call.argument(Constants.DEFAULT_VALUE), (int) call.argument(Constants.DATA_TYPE)));
                     break;
@@ -1284,7 +1314,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
                         return;
                     }
                     result.success(
-                            InsiderHybrid.getContentBoolWithoutCache(call.argument(Constants.VARIABLE_NAME).toString(),
+                            FlutterInsiderUtils.getContentBoolWithoutCache(call.argument(Constants.VARIABLE_NAME).toString(),
                                     (boolean) call.argument(Constants.DEFAULT_VALUE),
                                     (int) call.argument(Constants.DATA_TYPE)));
                     break;
@@ -1306,13 +1336,13 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
         InsiderIdentifiers identifiers = new InsiderIdentifiers();
         for (String key : identifiersMap.keySet()) {
             switch (key) {
-                case InsiderHybridMethods.ADD_EMAIL:
+                case Constants.ADD_EMAIL:
                     identifiers.addEmail(String.valueOf(identifiersMap.get(key)));
                     break;
-                case InsiderHybridMethods.ADD_PHONE_NUMBER:
+                case Constants.ADD_PHONE_NUMBER:
                     identifiers.addPhoneNumber(String.valueOf(identifiersMap.get(key)));
                     break;
-                case InsiderHybridMethods.ADD_USER_ID:
+                case Constants.ADD_USER_ID:
                     identifiers.addUserID(String.valueOf(identifiersMap.get(key)));
                     break;
                 default:
@@ -1376,7 +1406,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
             public void loadMessageCenterData(JSONArray jsonArray) {
                 MethodResultWrapper resultWrapper = new MethodResultWrapper(result);
                 try {
-                    ArrayList<Object> messages = InsiderHybridUtils.convertJSONArrayToArrayList(jsonArray);
+                    ArrayList<Object> messages = FlutterInsiderUtils.convertJSONArrayToArrayList(jsonArray);
                     if (messages == null) {
                         resultWrapper.error(Constants.MESSAGE_CENTER_LOG, "Message Center returned null.", null);
                         return;
@@ -1396,7 +1426,7 @@ public class FlutterInsiderPlugin implements MethodCallHandler, EventChannel.Str
             public void loadRecommendationData(JSONObject jsonObject) {
                 MethodResultWrapper resultWrapper = new MethodResultWrapper(result);
                 try {
-                    HashMap<String, Object> map = InsiderHybridUtils.convertJSONObjectToMap(jsonObject);
+                    HashMap<String, Object> map = FlutterInsiderUtils.convertJSONObjectToMap(jsonObject);
                     if (map == null) {
                         resultWrapper.error(Constants.RECOMMENDATION_LOG, "Recommendation returned null.", null);
                         return;

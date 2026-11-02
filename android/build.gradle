@@ -1,5 +1,5 @@
 group 'com.useinsider.insider.flutter_insider'
-version '5.3.0+nh-SNAPSHOT'
+version '5.5.0+nh-SNAPSHOT'
 
 buildscript {
     repositories {
@@ -60,6 +60,5 @@ dependencies {
     // (it guards for absence and silently degrades), so the consumer must provide it.
     implementation 'androidx.webkit:webkit:1.16.0'
 
-    implementation 'com.useinsider:insider:17.3.0-nh'
-    implementation 'com.useinsider:insiderhybrid:1.4.0'
+    implementation 'com.useinsider:insider:17.3.2-nh'
 }

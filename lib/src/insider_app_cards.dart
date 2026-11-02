@@ -107,38 +107,47 @@ class FlutterInsiderAppCards {
   }
 
   /// Records a view (impression) for the given [appCard].
-  void view(InsiderAppCard appCard) {
+  ///
+  /// The returned [Future] completes when the native SDK call has returned.
+  /// Errors are reported to the native SDK and never thrown.
+  Future<void> view(InsiderAppCard appCard) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
       args['appCard'] = appCard.toMap();
 
-      _channel.invokeMethod('viewAppCard', args);
+      await _channel.invokeMethod(Constants.APP_CARDS_VIEW, args);
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
   /// Records a tap on the given [appCard].
-  void click(InsiderAppCard appCard) {
+  ///
+  /// The returned [Future] completes when the native SDK call has returned.
+  /// Errors are reported to the native SDK and never thrown.
+  Future<void> click(InsiderAppCard appCard) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
       args['appCard'] = appCard.toMap();
 
-      _channel.invokeMethod('clickAppCard', args);
+      await _channel.invokeMethod(Constants.APP_CARDS_CLICK, args);
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
   }
 
   /// Records a tap on a [button] inside an App Card.
-  void clickButton(InsiderAppCardButton button) {
+  ///
+  /// The returned [Future] completes when the native SDK call has returned.
+  /// Errors are reported to the native SDK and never thrown.
+  Future<void> clickButton(InsiderAppCardButton button) async {
     try {
       Map<String, dynamic> args = <String, dynamic>{};
 
       args['appCardId'] = button.appCardId ?? '';
       args['data'] = button.toMap();
 
-      _channel.invokeMethod('clickAppCardButton', args);
+      await _channel.invokeMethod(Constants.APP_CARDS_BUTTON_CLICK, args);
     } catch (e) {
       FlutterInsiderUtils.putException(_channel, e);
     }
